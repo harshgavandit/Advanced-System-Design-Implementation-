@@ -1,0 +1,22 @@
+.terraform/
+*.tfstate*
+*.tfplan
+*.tfvars
+*.tfvars.json
+*.auto.tfvars
+*.auto.tfvars.json
+*.tfbackend
+backend.hcl
+tfplan
+plan.out
+plan.json
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+crash.log
+crash.*.log
+
+# Keep placeholder templates and the reproducible provider lock files
+!*.example
+!.terraform.lock.hcl

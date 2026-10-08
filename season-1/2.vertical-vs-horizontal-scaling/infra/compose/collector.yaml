@@ -1,0 +1,32 @@
+receivers:
+  otlp:
+    protocols:
+      http: {endpoint: '0.0.0.0:4318'}
+processors:
+  memory_limiter: {check_interval: 1s, limit_mib: 192, spike_limit_mib: 32}
+  tail_sampling:
+    decision_wait: 10s
+    num_traces: 5000
+    expected_new_traces_per_sec: 150
+    decision_cache: {sampled_cache_size: 10000, non_sampled_cache_size: 20000}
+    policies:
+      - {name: errors, type: status_code, status_code: {status_codes: [ERROR]}}
+      - {name: slow, type: latency, latency: {threshold_ms: 300}}
+      - {name: durable-jobs, type: string_attribute, string_attribute: {key: messaging.system, values: [aws_sqs]}}
+      - {name: routine, type: probabilistic, probabilistic: {sampling_percentage: 10}}
+  batch: {timeout: 1s, send_batch_size: 256}
+exporters:
+  otlp/tempo:
+    endpoint: tempo:4317
+    tls: {insecure: true}
+    sending_queue: {queue_size: 512, num_consumers: 2}
+    retry_on_failure: {enabled: true, max_elapsed_time: 30s}
+extensions:
+  health_check: {endpoint: '0.0.0.0:13133'}
+service:
+  extensions: [health_check]
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, tail_sampling, batch]
+      exporters: [otlp/tempo]

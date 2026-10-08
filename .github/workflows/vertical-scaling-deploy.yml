@@ -1,0 +1,58 @@
+name: Scaling digest promotion
+on:
+  workflow_dispatch:
+    inputs:
+      environment: {type: choice, options: [staging, production], required: true}
+      release_run_id: {type: string, required: true}
+      staging_run_id: {type: string, required: false, default: ''}
+permissions: {contents: read, actions: read}
+concurrency:
+  group: scaling-deploy-${{ inputs.environment }}
+  cancel-in-progress: false
+env:
+  TOPIC: season-1/2.vertical-vs-horizontal-scaling
+jobs:
+  deploy:
+    if: vars.SCALING_CLOUD_ENABLED == 'true' && github.ref == 'refs/heads/main'
+    environment: ${{ inputs.environment }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions: {contents: read, actions: read, id-token: write}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with: {node-version: 24.21.0}
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          name: scaling-signed-release
+          path: season-1/2.vertical-vs-horizontal-scaling/infra/compose/artifacts/ci
+          run-id: ${{ inputs.release_run_id }}
+          github-token: ${{ github.token }}
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        if: inputs.environment == 'production'
+        with:
+          name: scaling-staging-acceptance
+          path: season-1/2.vertical-vs-horizontal-scaling/infra/compose/artifacts/ci
+          run-id: ${{ inputs.staging_run_id }}
+          github-token: ${{ github.token }}
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd
+        with:
+          role-to-assume: ${{ vars.SCALING_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+          allowed-account-ids: ${{ vars.AWS_ACCOUNT_ID }}
+          role-session-name: scaling-deploy
+      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6
+        with: {cosign-release: v3.1.3}
+      - name: Verify provenance, migrate, deploy, gate and rollback
+        env:
+          CLOUD_TARGET_JSON: ${{ vars.SCALING_CLOUD_TARGET_JSON }}
+          SYNTHETIC_JOURNEY_JSON: ${{ secrets.SCALING_SYNTHETIC_JOURNEY_JSON }}
+          DOCKER_CONFIG: ${{ runner.temp }}/scaling-registry
+        run: node "$TOPIC/scripts/operations/deploy.mjs"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: scaling-${{ inputs.environment }}-acceptance
+          retention-days: 30
+          path: season-1/2.vertical-vs-horizontal-scaling/infra/compose/artifacts/ci/${{ inputs.environment }}.json

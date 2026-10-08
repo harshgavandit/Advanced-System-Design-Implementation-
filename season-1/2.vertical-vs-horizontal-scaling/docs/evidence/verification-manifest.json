@@ -1,0 +1,471 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-10-07T14:36:49.025Z",
+  "sourceTreeSha256": "bdb1ea534343daf039ab7f4748ebde90e650aa84a61a1fcfecf0fc62b7ea0b14",
+  "scenarioSha256": "8ca8c1caa5179dd58d9d8fe9acae0f9381d2103e02e1d3777f6b17adb4d0a4d1",
+  "imageId": "sha256:8e5fbe174b7d588904d7797e91d13dabb2ffe507361913258aa81d06625755d9",
+  "cloudConfigured": false,
+  "records": {
+    "static": {
+      "path": "infra/compose/artifacts/ci/ci-static.json",
+      "bytes": 424,
+      "sha256": "6d5437de08842c50dd2d32b37a5483f6451582b5b0ff937e64cfabda1df652e3",
+      "finishedAt": "2026-10-07T14:36:47.082Z",
+      "sourceTreeSha256": "bdb1ea534343daf039ab7f4748ebde90e650aa84a61a1fcfecf0fc62b7ea0b14",
+      "fingerprintScope": "application-build",
+      "status": "passed"
+    },
+    "contract": {
+      "path": "tests/phase0/artifacts/contract-report-express.json",
+      "bytes": 31462,
+      "sha256": "a1445a8d3175a0b71f40fa8522b6b590cb2ad1d8ece9280a4027c5d07de5c8e3",
+      "finishedAt": "2026-10-06T18:44:23.369Z",
+      "sourceTreeSha256": "d230050d4902675f7fa5e13508053e92cb052332a112d77d462c75193279597a",
+      "fingerprintScope": "server-src",
+      "status": "passed"
+    },
+    "image": {
+      "path": "infra/compose/artifacts/ci/image-identity.json",
+      "bytes": 339,
+      "sha256": "4d2d82a8b948ffc7cebbb76f93909e1c7caf2ca3acbbdf706b4e0a7be884a563",
+      "finishedAt": "2026-10-06T18:47:10.098Z",
+      "sourceTreeSha256": "bdb1ea534343daf039ab7f4748ebde90e650aa84a61a1fcfecf0fc62b7ea0b14",
+      "image": "sha256:8e5fbe174b7d588904d7797e91d13dabb2ffe507361913258aa81d06625755d9",
+      "fingerprintScope": "application-build",
+      "status": "passed"
+    },
+    "durability": {
+      "path": "infra/compose/artifacts/ingestion/durability.json",
+      "bytes": 1922,
+      "sha256": "33fde89133156c658a70bb0523e6a6cfe8d9cc07d83e15148e365ae9cb07cb17",
+      "finishedAt": "2026-10-06T18:47:02.781Z",
+      "sourceTreeSha256": "bdb1ea534343daf039ab7f4748ebde90e650aa84a61a1fcfecf0fc62b7ea0b14",
+      "image": "sha256:8e5fbe174b7d588904d7797e91d13dabb2ffe507361913258aa81d06625755d9",
+      "fingerprintScope": "application-build",
+      "status": "passed"
+    },
+    "containers": {
+      "path": "infra/compose/artifacts/container-verification.json",
+      "bytes": 2016,
+      "sha256": "935808766cae900f211b3b60f22b33b561970a92ae10e5bcaee8cffb0a29a294",
+      "finishedAt": "2026-10-07T14:30:48.688Z",
+      "sourceTreeSha256": "bdb1ea534343daf039ab7f4748ebde90e650aa84a61a1fcfecf0fc62b7ea0b14",
+      "image": "sha256:8e5fbe174b7d588904d7797e91d13dabb2ffe507361913258aa81d06625755d9",
+      "fingerprintScope": "application-build",
+      "status": "passed"
+    },
+    "drain": {
+      "path": "infra/compose/artifacts/container-drill.json",
+      "bytes": 628,
+      "sha256": "0f211b98176d44b0c2b585b49a34e1c1df79e9b03f12a98ef956616b0b3d6d28",
+      "finishedAt": "2026-10-07T13:12:08.368Z",
+      "sourceTreeSha256": "bdb1ea534343daf039ab7f4748ebde90e650aa84a61a1fcfecf0fc62b7ea0b14",
+      "image": "sha256:8e5fbe174b7d588904d7797e91d13dabb2ffe507361913258aa81d06625755d9",
+      "fingerprintScope": "application-build",
+      "status": "passed"
+    },
+    "replicas": {
+      "path": "infra/compose/artifacts/replica-drill.json",
+      "bytes": 4061,
+      "sha256": "c007fc515c79c80332d8af36940f52b1ca2993f2b9a02dae58e99b2b8e498096",
+      "finishedAt": "2026-10-07T13:13:42.345Z",
+      "sourceTreeSha256": "bdb1ea534343daf039ab7f4748ebde90e650aa84a61a1fcfecf0fc62b7ea0b14",
+      "image": "sha256:8e5fbe174b7d588904d7797e91d13dabb2ffe507361913258aa81d06625755d9",
+      "fingerprintScope": "application-build",
+      "status": "passed"
+    },
+    "gateway": {
+      "path": "infra/compose/artifacts/gateway-failover.json",
+      "bytes": 4260,
+      "sha256": "3021b0fa5acc958b4dd70a02f4e0ef6ff3264f6700d39ea07b8bc1b154a22d34",
+      "finishedAt": "2026-10-07T13:16:44.454Z",
+      "image": "sha256:8e5fbe174b7d588904d7797e91d13dabb2ffe507361913258aa81d06625755d9",
+      "fingerprintScope": "application-build",
+      "status": "passed"
+    },
+    "comparison": {
+      "path": "infra/compose/artifacts/benchmarks/comparison-summary.json",
+      "bytes": 14887,
+      "sha256": "270589a8fe8555ec260c57742a5f70fe017e9065daf4058ad2491bc5badaf8a1",
+      "finishedAt": "2026-10-07T14:27:24.480Z",
+      "sourceTreeSha256": "bdb1ea534343daf039ab7f4748ebde90e650aa84a61a1fcfecf0fc62b7ea0b14",
+      "image": "sha256:8e5fbe174b7d588904d7797e91d13dabb2ffe507361913258aa81d06625755d9",
+      "fingerprintScope": "application-build",
+      "status": "passed"
+    },
+    "database": {
+      "path": "infra/compose/artifacts/phase5-summary.json",
+      "bytes": 5236,
+      "sha256": "8fc919ed873ccc327e918a3f3bd3a9766b1058e738942bffca29ba291b29e0f8",
+      "finishedAt": "2026-10-07T14:35:13.574Z",
+      "sourceTreeSha256": "bdb1ea534343daf039ab7f4748ebde90e650aa84a61a1fcfecf0fc62b7ea0b14",
+      "image": "sha256:8e5fbe174b7d588904d7797e91d13dabb2ffe507361913258aa81d06625755d9",
+      "fingerprintScope": "application-build",
+      "status": "passed"
+    },
+    "observability": {
+      "path": "infra/compose/artifacts/phase6-observability.json",
+      "bytes": 2259,
+      "sha256": "bd869cac4b5bd4eb355b5b2f0c30e7ed4cebaa67f7e4984997d8d37067385adc",
+      "finishedAt": "2026-10-07T13:20:01.444Z",
+      "sourceTreeSha256": "bdb1ea534343daf039ab7f4748ebde90e650aa84a61a1fcfecf0fc62b7ea0b14",
+      "image": "sha256:8e5fbe174b7d588904d7797e91d13dabb2ffe507361913258aa81d06625755d9",
+      "fingerprintScope": "application-build",
+      "status": "passed"
+    },
+    "browser": {
+      "path": "infra/compose/artifacts/browser-verification.json",
+      "bytes": 1033,
+      "sha256": "a497f88341e545c626efc8df2450c135512c307ec29efc00bb9ee02c562f3ceb",
+      "finishedAt": "2026-10-07T14:35:49.059Z",
+      "sourceTreeSha256": "bdb1ea534343daf039ab7f4748ebde90e650aa84a61a1fcfecf0fc62b7ea0b14",
+      "image": "sha256:8e5fbe174b7d588904d7797e91d13dabb2ffe507361913258aa81d06625755d9",
+      "fingerprintScope": "application-build",
+      "status": "passed"
+    },
+    "security": {
+      "path": "infra/compose/artifacts/ci/security-summary.json",
+      "bytes": 3772,
+      "sha256": "4c3840e00181f6a3761198f54750092bec1fb0ff77a2a6e92c4e11178e28d2c5",
+      "finishedAt": "2026-10-06T18:51:24.391Z",
+      "sourceTreeSha256": "bdb1ea534343daf039ab7f4748ebde90e650aa84a61a1fcfecf0fc62b7ea0b14",
+      "image": "sha256:8e5fbe174b7d588904d7797e91d13dabb2ffe507361913258aa81d06625755d9",
+      "fingerprintScope": "application-build",
+      "status": "passed"
+    },
+    "terraform": {
+      "path": "infra/compose/artifacts/ci/terraform-verification.json",
+      "bytes": 470,
+      "sha256": "b62d5d9a6ea8cd7ee10c34ebd13541163d96688a0e332c0e3edfd856ab6c8934",
+      "finishedAt": "2026-10-06T18:47:31.996Z",
+      "fingerprintScope": "application-build",
+      "status": "unbound"
+    },
+    "operations": {
+      "path": "infra/compose/artifacts/ci/operations-summary.json",
+      "bytes": 421,
+      "sha256": "e8f243b2e281c41ecbe9a0e4dd2750c16c573e9a16c00c4dcf8104a1dfe6970a",
+      "finishedAt": "2026-10-07T09:07:57.988Z",
+      "sourceTreeSha256": "bdb1ea534343daf039ab7f4748ebde90e650aa84a61a1fcfecf0fc62b7ea0b14",
+      "image": "sha256:8e5fbe174b7d588904d7797e91d13dabb2ffe507361913258aa81d06625755d9",
+      "fingerprintScope": "application-build",
+      "status": "passed"
+    },
+    "recovery": {
+      "path": "infra/compose/artifacts/operations/recovery/recovery.json",
+      "bytes": 4549662,
+      "sha256": "cbb90b948fa992a1659b4427b62aae51e5d19f5f134b8fcfbcbab34057c77029",
+      "finishedAt": "2026-10-07T13:10:51.729Z",
+      "image": "sha256:8e5fbe174b7d588904d7797e91d13dabb2ffe507361913258aa81d06625755d9",
+      "fingerprintScope": "application-build",
+      "status": "passed"
+    },
+    "soakRecovery": {
+      "path": "infra/compose/artifacts/operations/recovery/recovery-soak.json",
+      "bytes": 4549662,
+      "sha256": "cbb90b948fa992a1659b4427b62aae51e5d19f5f134b8fcfbcbab34057c77029",
+      "finishedAt": "2026-10-07T13:10:51.729Z",
+      "image": "sha256:8e5fbe174b7d588904d7797e91d13dabb2ffe507361913258aa81d06625755d9",
+      "fingerprintScope": "application-build",
+      "status": "passed"
+    },
+    "rollback": {
+      "path": "infra/compose/artifacts/operations/rollback/rollback.json",
+      "bytes": 2581,
+      "sha256": "505d36daeacf3ee1cb25905d0c1a565aaf2eaf7bd9d0df18be962e05a90c6fa8",
+      "finishedAt": "2026-10-07T09:09:01.279Z",
+      "fingerprintScope": "application-build",
+      "status": "passed"
+    },
+    "smoke": {
+      "path": "infra/compose/artifacts/operations/load/smoke.json",
+      "bytes": 46108,
+      "sha256": "6d9370140cc26584b092b161b1337f4c680312b02703afec3f1fbac023c4a286",
+      "finishedAt": "2026-10-07T09:06:51.920Z",
+      "fingerprintScope": "application-build",
+      "status": "passed"
+    },
+    "support": {
+      "path": "infra/compose/artifacts/operations/load/support.json",
+      "bytes": 188460,
+      "sha256": "09f384977da2d61987945b7b7103ee10b56b9ce2711b828ebca021a6cf39d825",
+      "finishedAt": "2026-10-07T08:17:42.671Z",
+      "fingerprintScope": "application-build",
+      "status": "passed"
+    },
+    "stress": {
+      "path": "infra/compose/artifacts/operations/load/stress.json",
+      "bytes": 152891,
+      "sha256": "105895fb48419a1dbfe1cc51afa20d5033eaba3f7d71fbb7e5760179ea7488a1",
+      "finishedAt": "2026-10-06T21:11:57.738Z",
+      "fingerprintScope": "application-build",
+      "status": "passed"
+    },
+    "spike": {
+      "path": "infra/compose/artifacts/operations/load/spike.json",
+      "bytes": 78763,
+      "sha256": "36600b6e468d4ce068492c2048d270b457474fb47ae37ae8f26e08de590fbb34",
+      "finishedAt": "2026-10-06T21:18:12.167Z",
+      "fingerprintScope": "application-build",
+      "status": "passed"
+    },
+    "soak": {
+      "path": "infra/compose/artifacts/operations/load/soak.json",
+      "bytes": 4279450,
+      "sha256": "3ddf7e8c732db15c37c33d5ad10965807b2e413aef43cc1520fcd4e6c12bd5a5",
+      "finishedAt": "2026-10-07T13:09:41.931Z",
+      "fingerprintScope": "application-build",
+      "status": "passed"
+    },
+    "cloud": {
+      "path": "infra/compose/artifacts/ci/staging.json",
+      "fingerprintScope": "application-build",
+      "status": "missing"
+    }
+  },
+  "launch": {
+    "approved": false,
+    "blockers": [
+      "HTTPS cloud staging acceptance is missing",
+      "A full 30-day production SLO window has not been observed"
+    ]
+  },
+  "workloads": {
+    "smoke": {
+      "status": "passed",
+      "measuredSeconds": 126.9,
+      "iterations": 2406,
+      "mixedIterations": 2401,
+      "mixedIterationsMethod": "filtered counter",
+      "authenticationIterations": 5,
+      "httpRequests": 3297,
+      "failedRequests": 0,
+      "droppedIterations": 0,
+      "catalogP95Ms": 3.91409,
+      "catalogP99Ms": 5.014368800000001,
+      "writeP95Ms": 115.738989,
+      "authenticationP95Ms": 113.3747437,
+      "ingestionP95Ms": 823.8,
+      "acknowledgedJobs": 48,
+      "productEffects": 48
+    },
+    "support": {
+      "status": "passed",
+      "measuredSeconds": 607.266,
+      "iterations": 30022,
+      "mixedIterations": 30001,
+      "mixedIterationsMethod": "filtered counter",
+      "authenticationIterations": 21,
+      "httpRequests": 41304,
+      "failedRequests": 0,
+      "droppedIterations": 0,
+      "catalogP95Ms": 6.05795,
+      "catalogP99Ms": 9.068553,
+      "writeP95Ms": 133.7236667499999,
+      "authenticationP95Ms": 148.029434,
+      "ingestionP95Ms": 835,
+      "acknowledgedJobs": 600,
+      "productEffects": 600
+    },
+    "stress": {
+      "status": "passed",
+      "measuredSeconds": 487.521,
+      "iterations": 39016,
+      "mixedIterations": 38999,
+      "mixedIterationsMethod": "total minus filtered authentication counter",
+      "authenticationIterations": 17,
+      "httpRequests": 53567,
+      "failedRequests": 0,
+      "droppedIterations": 0,
+      "catalogP95Ms": 4.6304891,
+      "catalogP99Ms": 8.31535176,
+      "writeP95Ms": 139.18512665,
+      "authenticationP95Ms": 141.0161708,
+      "ingestionP95Ms": 800.05,
+      "acknowledgedJobs": 780,
+      "productEffects": 780
+    },
+    "spike": {
+      "status": "passed",
+      "measuredSeconds": 236.556,
+      "iterations": 7807,
+      "mixedIterations": 7799,
+      "mixedIterationsMethod": "total minus filtered authentication counter",
+      "authenticationIterations": 8,
+      "httpRequests": 10720,
+      "failedRequests": 0,
+      "droppedIterations": 0,
+      "catalogP95Ms": 3.9485124999999983,
+      "catalogP99Ms": 5.9410144200000135,
+      "writeP95Ms": 123.54393479999996,
+      "authenticationP95Ms": 112.7262328,
+      "ingestionP95Ms": 800.25,
+      "acknowledgedJobs": 156,
+      "productEffects": 156
+    },
+    "soak": {
+      "status": "passed",
+      "measuredSeconds": 14407.537,
+      "iterations": 720482,
+      "mixedIterations": 720001,
+      "mixedIterationsMethod": "filtered counter",
+      "authenticationIterations": 481,
+      "httpRequests": 989230,
+      "failedRequests": 0,
+      "droppedIterations": 0,
+      "catalogP95Ms": 3.309098,
+      "catalogP99Ms": 4.6876,
+      "writeP95Ms": 127.91613454999994,
+      "authenticationP95Ms": 129.27864599999995,
+      "ingestionP95Ms": 801,
+      "acknowledgedJobs": 14400,
+      "productEffects": 14400
+    }
+  },
+  "history": [
+    {
+      "path": "infra/compose/artifacts/benchmarks/historical-comparison-summary.json",
+      "reason": "Previous-image equal-resource comparison retained before current-image trials",
+      "eligibleForLaunch": false,
+      "recordedPassed": true,
+      "sha256": "4637315d6a7537c1cc5952a767e4726c5b818ef1daf2e7c992fe9a5aa290725b",
+      "bytes": 14930
+    },
+    {
+      "path": "infra/compose/artifacts/historical-phase5-summary.json",
+      "reason": "Previous-image index/cache capacity summary retained before current-image trials",
+      "eligibleForLaunch": false,
+      "recordedPassed": true,
+      "sha256": "1b1033c301f9debd2c8bfe93085c810d11ad045be00a168a3476fb49a722f059",
+      "bytes": 5146
+    },
+    {
+      "path": "infra/compose/artifacts/failed-capacity-container-verification.json",
+      "reason": "Capacity wrapper omitted local signing-key context before runtime verification",
+      "eligibleForLaunch": false,
+      "recordedPassed": false,
+      "sha256": "adc4f9f8aa7422d4788d83e139f267c9afe94103ec1e0163759485666936204a",
+      "bytes": 125
+    },
+    {
+      "path": "infra/compose/artifacts/operations/load/failed-overlapped-smoke.json",
+      "reason": "Load overlapped build work",
+      "eligibleForLaunch": false,
+      "recordedPassed": false,
+      "sha256": "71d304777d9caf0cd5120bee67c01d604e3be5ef0c5827a0887df1f94f33cc05",
+      "bytes": 45082
+    },
+    {
+      "path": "infra/compose/artifacts/operations/load/failed-bursty-smoke.json",
+      "reason": "Earlier grouped write-arrival schedule",
+      "eligibleForLaunch": false,
+      "recordedPassed": false,
+      "sha256": "0bbd3851e04518624d78501c3ac6f194c1832750c0c6cef96d2cc06b486bfc22",
+      "bytes": 45104
+    },
+    {
+      "path": "infra/compose/artifacts/operations/load/failed-frequent-probes-smoke.json",
+      "reason": "Earlier frequent database shell probes",
+      "eligibleForLaunch": false,
+      "recordedPassed": false,
+      "sha256": "d51880fd9c88aa89e17dfe41fa8c874b278d8eaa675f792d1a192b8c604093b1",
+      "bytes": 45444
+    },
+    {
+      "path": "infra/compose/artifacts/operations/load/failed-auth-startup-stress.json",
+      "reason": "Single authentication VU dropped a startup iteration",
+      "eligibleForLaunch": false,
+      "recordedPassed": false,
+      "sha256": "2fc989aac8200bb7f0d0567731cd7482ab82f51c4ac4b30cc0f59c5f5ed4a0eb",
+      "bytes": 149901
+    },
+    {
+      "path": "infra/compose/artifacts/operations/load/failed-auth-refresh-soak.json",
+      "reason": "Host battery sleep interrupted traffic and refresh cadence; protected-request errors recorded",
+      "eligibleForLaunch": false,
+      "recordedPassed": false,
+      "sha256": "e9dee179219825d7bedfe7295d91e20674a885702c0cae4622e91deb2930fa61",
+      "bytes": 513925
+    },
+    {
+      "path": "infra/compose/artifacts/operations/load/failed-soak-live-diagnostics.json",
+      "reason": "Bounded protected-route status sample from the interrupted soak",
+      "eligibleForLaunch": false,
+      "recordedPassed": false,
+      "sha256": "8954f26b01be2cf816fef4acc18c3331bfb9e37d477700e5e220052526ee0dd4",
+      "bytes": 2330
+    },
+    {
+      "path": "infra/compose/artifacts/operations/load/failed-soak-power-events.json",
+      "reason": "Windows sleep/wake events identify battery suspension during the run",
+      "eligibleForLaunch": false,
+      "recordedPassed": false,
+      "sha256": "438c01b9e67e8e113bced1ce798c7e276498e7367878c0adc175310617f5cb60",
+      "bytes": 328
+    },
+    {
+      "path": "infra/compose/artifacts/operations/load/historical-single-probe-support.json",
+      "reason": "Earlier single-VU authentication scenario",
+      "eligibleForLaunch": false,
+      "recordedPassed": true,
+      "sha256": "1cf62c00b93657b005886c84d7e4fb3f4ba2c936d6c34ed4a4e02bac90bbb28e",
+      "bytes": 185335
+    },
+    {
+      "path": "infra/compose/artifacts/operations/load/historical-single-probe-spike.json",
+      "reason": "Earlier single-VU authentication scenario",
+      "eligibleForLaunch": false,
+      "recordedPassed": true,
+      "sha256": "a3bc29bb4adef5edda563a336f68f09383b6003e942ef18337147dc9f54a9d99",
+      "bytes": 75311
+    },
+    {
+      "path": "infra/compose/artifacts/operations/load/interrupted-pre-fixture-fix-soak.json",
+      "reason": "Interrupted before isolated instance-wide VU fixtures",
+      "eligibleForLaunch": false,
+      "recordedPassed": false,
+      "sha256": "5fa96091483d8fa8fba27b6d19e5584ced6ce0336a40ef9027509cf132dcb883",
+      "bytes": 81578
+    },
+    {
+      "path": "infra/compose/artifacts/operations/load/interrupted-pre-refresh-clock-soak.json",
+      "reason": "Interrupted before issuance-anchored refresh scheduling",
+      "eligibleForLaunch": false,
+      "recordedPassed": false,
+      "sha256": "eae60bda803cf8c6efd48ab455d8f22ed311a9ea34e3eb7804f433cd8c0a51e1",
+      "bytes": 93797
+    },
+    {
+      "path": "infra/compose/artifacts/operations/load/interrupted-host-restart-soak.json",
+      "reason": "Host/session restart ended the run before full duration or reconciliation",
+      "eligibleForLaunch": false,
+      "recordedPassed": false,
+      "sha256": "1d357bb61eb30641677fad0f139d85c526d8c96c8615d8017f04b4462cf427d4",
+      "bytes": 1023
+    },
+    {
+      "path": "infra/compose/artifacts/failed-runtime-overlay-replica.json",
+      "reason": "Replica replacement omitted active telemetry overlays",
+      "eligibleForLaunch": false,
+      "recordedPassed": false,
+      "sha256": "2f186d489b9d6fb2ffa8764fc127012dbb70043ae635b33a47a248842d314c51",
+      "bytes": 445
+    },
+    {
+      "path": "infra/compose/artifacts/failed-telemetry-gateway-retry.json",
+      "reason": "Gateway retry budget failed during replica restart",
+      "eligibleForLaunch": false,
+      "recordedPassed": false,
+      "sha256": "455e5eca05469297341fee0b57a4ade65ff170b64049e4dcfb5310ee3b1300cc",
+      "bytes": 1751
+    },
+    {
+      "path": "infra/compose/artifacts/operations/recovery/failed-support-rollback-recovery.json",
+      "reason": "Support setup failed in local proxy rollback verification before workload",
+      "eligibleForLaunch": false,
+      "recordedPassed": false,
+      "sha256": "9bf35082abbb4fe862ecb1ae4067071d8356c3b0c2bff20f0e2ed0bd070e579f",
+      "bytes": 771
+    }
+  ]
+}

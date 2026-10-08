@@ -1,0 +1,6 @@
+# Machine-specific deployment targets; publish only the placeholder template
+/deployment.json
+/deployment.local.json
+/staging.json
+/production.json
+!/deployment.example.json

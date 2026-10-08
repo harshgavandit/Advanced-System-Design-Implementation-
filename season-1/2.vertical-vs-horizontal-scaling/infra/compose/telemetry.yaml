@@ -1,0 +1,101 @@
+x-logs: &logs
+  driver: json-file
+  options: {max-size: '10m', max-file: '3'}
+x-local: &local
+  networks: [backend]
+  read_only: true
+  security_opt: [no-new-privileges:true]
+  logging: *logs
+  cpus: 0.5
+  mem_limit: 256m
+services:
+  gateway:
+    volumes: ['./edge-logging-on.conf:/etc/nginx/edge-logging.conf:ro']
+    depends_on: {telemetry: {condition: service_healthy}}
+  telemetry-init:
+    image: node:24-trixie-slim@sha256:173f125896c3b47ddf056734c7ea789d04595a6a08769a8f78e0df642781fb66
+    user: '0:0'
+    command: [node, -e, 'const fs=require("node:fs"); for(const [path,uid] of [["/prometheus",65534],["/grafana",472],["/tempo",10001],["/loki",10001],["/alerts",65534]]) {fs.mkdirSync(path,{recursive:true});fs.chownSync(path,uid,uid)}']
+    volumes: ['prometheus-data:/prometheus','grafana-data:/grafana','tempo-data:/tempo','loki-data:/loki','alerts-data:/alerts']
+    networks: [backend]
+    restart: 'no'
+    cpus: 0.1
+    mem_limit: 64m
+    logging: *logs
+  prometheus:
+    command: !override [--config.file=/etc/prometheus/prometheus.yml, --storage.tsdb.path=/prometheus, --storage.tsdb.retention.time=48h, --storage.tsdb.retention.size=500MB]
+    volumes: !override ['./prometheus-telemetry.yaml:/etc/prometheus/prometheus.yml:ro','./alerts.yaml:/etc/prometheus/alerts.yaml:ro','prometheus-data:/prometheus']
+    tmpfs: !reset []
+    logging: *logs
+    depends_on: {telemetry-init: {condition: service_completed_successfully}}
+  collector:
+    <<: *local
+    image: otel/opentelemetry-collector-contrib@sha256:39923a8e431bd1f57be82411999d389fcfe40857492e4365456d97a4c1f74be6
+    command: [--config=/etc/otel/config.yaml]
+    volumes: ['./collector.yaml:/etc/otel/config.yaml:ro']
+    depends_on: {tempo: {condition: service_started}}
+  tempo:
+    <<: *local
+    image: grafana/tempo@sha256:1ce31d6d7ffab62189685e8c47881d4a561c5d38bd0dbd66e40ca83cef07923d
+    command: [-config.file=/etc/tempo.yaml]
+    volumes: ['./tempo.yaml:/etc/tempo.yaml:ro','tempo-data:/var/tempo']
+    depends_on: {telemetry-init: {condition: service_completed_successfully}}
+  loki:
+    <<: *local
+    image: grafana/loki@sha256:1107dd5274e0ada47e42472b7a7e71f3b2a2fe878878108f3e2f9e51528f0193
+    command: [-config.file=/etc/loki.yaml]
+    volumes: ['./loki.yaml:/etc/loki.yaml:ro','loki-data:/loki']
+    depends_on: {telemetry-init: {condition: service_completed_successfully}}
+  alertmanager:
+    <<: *local
+    image: prom/alertmanager@sha256:e9733bafb1bdef9b00e25a21f8f99dc26a22224bf16641ad754d1649f4c3357a
+    command: [--config.file=/etc/alertmanager/config.yaml, --storage.path=/alertmanager]
+    volumes: ['./alertmanager.yaml:/etc/alertmanager/config.yaml:ro','alerts-data:/alertmanager']
+    depends_on: {telemetry-init: {condition: service_completed_successfully}, telemetry: {condition: service_healthy}}
+  telemetry:
+    <<: *local
+    image: ${LAB_IMAGE:-scaling-express:phase6}
+    init: true
+    command: [node, dist/telemetry.js]
+    tmpfs: ['/tmp:size=16m']
+    volumes: ['./artifacts/telemetry:/evidence']
+    networks: [backend, edge]
+    ports: ['127.0.0.1:19190:5002']
+    depends_on: {loki: {condition: service_started}}
+    labels: {scaling.owner: production-lab}
+  grafana:
+    <<: *local
+    image: grafana/grafana@sha256:b28bae15e219c998fb0e0424ed724930cc61b1f61fb404d47c862f9a23f9e572
+    networks: [backend, edge]
+    ports: ['127.0.0.1:13002:3000']
+    cpus: 0.5
+    mem_limit: 512m
+    tmpfs: ['/tmp:size=32m']
+    volumes: ['grafana-data:/var/lib/grafana','./grafana/datasources.yaml:/etc/grafana/provisioning/datasources/scaling.yaml:ro','./grafana/providers.yaml:/etc/grafana/provisioning/dashboards/scaling.yaml:ro','./grafana/dashboards:/var/lib/grafana/dashboards:ro']
+    environment:
+      GF_SECURITY_ADMIN_USER: lab-admin
+      GF_SECURITY_ADMIN_PASSWORD: ${LAB_GRAFANA_SECRET:?Run stack.ps1 -Telemetry}
+      GF_AUTH_ANONYMOUS_ENABLED: 'false'
+      GF_USERS_ALLOW_SIGN_UP: 'false'
+      GF_SECURITY_DISABLE_GRAVATAR: 'true'
+      GF_ANALYTICS_REPORTING_ENABLED: 'false'
+      GF_ANALYTICS_CHECK_FOR_UPDATES: 'false'
+      GF_ANALYTICS_CHECK_FOR_PLUGIN_UPDATES: 'false'
+      GF_USERS_DEFAULT_THEME: light
+      GF_PLUGINS_PREINSTALL_DISABLED: 'true'
+    depends_on: {telemetry-init: {condition: service_completed_successfully},prometheus: {condition: service_started}}
+  api:
+    command: [node, --import, ./dist/tracing.js, dist/container.js]
+    environment: {TRACING_ENABLED: 'true', OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: 'http://collector:4318/v1/traces', LOG_UDP_ENDPOINT: 'telemetry:1514', SERVICE_VERSION: '0.4.0'}
+  worker:
+    command: [node, --import, ./dist/tracing.js, dist/worker.js]
+    environment: {TRACING_ENABLED: 'true', OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: 'http://collector:4318/v1/traces', SERVICE_VERSION: '0.4.0'}
+  outbox:
+    command: [node, --import, ./dist/tracing.js, dist/outbox.js]
+    environment: {TRACING_ENABLED: 'true', OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: 'http://collector:4318/v1/traces', SERVICE_VERSION: '0.4.0'}
+volumes:
+  prometheus-data: {}
+  grafana-data: {}
+  tempo-data: {}
+  loki-data: {}
+  alerts-data: {}

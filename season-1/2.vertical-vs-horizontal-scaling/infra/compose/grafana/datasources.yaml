@@ -1,0 +1,30 @@
+apiVersion: 1
+datasources:
+  - name: Scaling Lab Prometheus
+    uid: scaling-prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false
+  - name: Scaling Lab Tempo
+    uid: scaling-tempo
+    type: tempo
+    access: proxy
+    url: http://tempo:3200
+    editable: false
+    jsonData:
+      tracesToLogsV2: {datasourceUid: scaling-loki, spanStartTimeShift: '-1m', spanEndTimeShift: '1m', filterByTraceID: true}
+      serviceMap: {datasourceUid: scaling-prometheus}
+  - name: Scaling Lab Loki
+    uid: scaling-loki
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    editable: false
+    jsonData:
+      derivedFields:
+        - name: TraceID
+          matcherRegex: '"traceId":"([a-f0-9]{32})"'
+          datasourceUid: scaling-tempo
+          url: '$${__value.raw}'

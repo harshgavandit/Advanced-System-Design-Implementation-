@@ -1,0 +1,67 @@
+x-queue-environment: &queue-environment
+  SQS_REGION: us-east-1
+  SQS_ENDPOINT: http://queue:9324
+  SQS_QUEUE_URL: http://queue:9324/000000000000/ingestion-jobs
+  SQS_DLQ_URL: http://queue:9324/000000000000/ingestion-dlq
+  SQS_LOCAL_EMULATOR: 'true'
+x-background: &background
+  logging: {driver: json-file, options: {max-size: '10m', max-file: '3'}}
+  image: ${LAB_IMAGE:-scaling-express:phase6}
+  pull_policy: never
+  init: true
+  read_only: true
+  tmpfs: ['/tmp:size=32m,mode=1777']
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  networks: [backend]
+  cpus: 0.5
+  mem_limit: 256m
+  stop_grace_period: 25s
+  restart: unless-stopped
+  depends_on:
+    api: {condition: service_healthy}
+    queue: {condition: service_started}
+  labels: {scaling.owner: production-lab}
+services:
+  api:
+    environment:
+      <<: *queue-environment
+  queue:
+    logging: {driver: json-file, options: {max-size: '10m', max-file: '3'}}
+    image: softwaremill/elasticmq-native@sha256:e4580ab9ad1bd5cd37b4ba04911bc5ccc8cd2d9ab4de56ece65acee71c24e05c
+    volumes: ['./ingestion.conf:/opt/elasticmq.conf:ro','queue-data:/data']
+    environment: {JAVA_OPTS: '-Dconfig.file=/opt/elasticmq.conf'}
+    networks: [backend]
+    cpus: 0.5
+    mem_limit: 256m
+    stop_grace_period: 20s
+    labels: {scaling.owner: production-lab}
+  worker:
+    <<: *background
+    command: [node, dist/worker.js]
+    environment:
+      <<: *queue-environment
+      NODE_ENV: production
+      SERVICE_ROLE: worker
+      MONGO_AUTO_INDEX: 'true'
+      PUBLIC_CATALOG_CACHE: ${LAB_PUBLIC_CACHE:-false}
+      REDIS_URL: redis://redis:6379
+      PORT: '5002'
+      MONGO_URI: mongodb://mongo:27017/production_lab?replicaSet=production-lab
+      MONGO_SELECT_TIMEOUT_MS: '2000'
+      LOG_LEVEL: info
+      MONGO_POOL_WAIT_MS: '500'
+  outbox:
+    <<: *background
+    command: [node, dist/outbox.js]
+    environment:
+      <<: *queue-environment
+      NODE_ENV: production
+      SERVICE_ROLE: outbox
+      MONGO_AUTO_INDEX: 'true'
+      PORT: '5002'
+      MONGO_URI: mongodb://mongo:27017/production_lab?replicaSet=production-lab
+      MONGO_SELECT_TIMEOUT_MS: '2000'
+      LOG_LEVEL: info
+volumes:
+  queue-data: {}

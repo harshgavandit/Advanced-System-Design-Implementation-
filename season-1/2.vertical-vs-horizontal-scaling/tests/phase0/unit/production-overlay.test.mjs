@@ -1,0 +1,22 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {applyProductionOverlay} from '../../../contracts/production-overlay.mjs';
+import {yaml,SwaggerParser} from '../dependencies.mjs';
+import {assertSchema,selectOperations} from '../schema.mjs';
+test('canonical durable contract validates receipts, job state and every added capability',async()=>{
+  const spec=yaml.load(await readFile(new URL('../../../contracts/openapi.yaml',import.meta.url),'utf8'));
+  const matrix=JSON.parse(await readFile(new URL('../../../contracts/capabilities.json',import.meta.url),'utf8'));
+  const policy=JSON.parse(await readFile(new URL('../../../contracts/express-production.json',import.meta.url),'utf8'));
+  const original=structuredClone(spec);
+  applyProductionOverlay(spec,policy,matrix);
+  const resolved=await SwaggerParser.validate(spec);
+  assert.equal(selectOperations(resolved,matrix,'express').supported.length,28);
+  assert.equal(Object.keys(original.paths).includes('/ingestion-jobs/{id}'),false,'Legacy baseline is preserved');
+  const receipt=resolved.paths['/products/ingest'].post.responses[202].content['application/json'].schema;
+  assertSchema(receipt,{jobId:'000000000000002a00000001',status:'accepted'});
+  assert.throws(()=>assertSchema(receipt,{accepted:true}));
+  assert.throws(()=>assertSchema(receipt,{jobId:'wrong',status:'accepted'}));
+  assert.throws(()=>assertSchema(receipt,{jobId:'000000000000002a00000001',status:'succeeded'}));
+  assert.ok(resolved.paths['/products/ingest'].post.responses[409]);
+});

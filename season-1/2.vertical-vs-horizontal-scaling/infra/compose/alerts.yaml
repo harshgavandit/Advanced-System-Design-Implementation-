@@ -1,0 +1,56 @@
+groups:
+  - name: scaling-lab-slis
+    rules:
+      - record: scaling_lab:eligible_requests:rate5m
+        expr: sum(rate(edge_http_requests_total{route!~"/health|/ready|/metrics|__unmatched__",status_code!~"400|401|403"}[5m]))
+      - record: scaling_lab:availability_error_ratio:5m
+        expr: (sum(rate(edge_http_requests_total{route!~"/health|/ready|/metrics|__unmatched__",status_code=~"5..|429|499"}[5m])) or (scaling_lab:eligible_requests:rate5m * 0)) / scaling_lab:eligible_requests:rate5m
+      - record: scaling_lab:catalog_under_150ms_ratio:5m
+        expr: sum(rate(edge_http_request_duration_seconds_bucket{route="/products",method="GET",le="0.15"}[5m])) / sum(rate(edge_http_request_duration_seconds_count{route="/products",method="GET"}[5m]))
+      - record: scaling_lab:observed_ingestion_under_30s_ratio:5m
+        expr: sum(rate(app_ingestion_completion_seconds_bucket{le="30"}[5m])) / sum(rate(app_ingestion_completion_seconds_count[5m]))
+  - name: scaling-lab-reliability
+    rules:
+      - alert: ApiReplicaUnavailable
+        expr: sum(app_readiness{job="production-lab-api"}) < 4
+        for: 15s
+        labels: {severity: warning, owner: local-lab-operator, environment: local-synthetic}
+        annotations:
+          summary: Fewer than four serving API processes are ready
+          action: Inspect the owned API containers and primary health; restore the missing replica with stack.ps1 -Replicas 4 -Observe -Ingest -Telemetry.
+      - alert: MissingApiTelemetry
+        expr: absent(up{job="production-lab-api"}) or sum(up{job="production-lab-api"}) < 4
+        for: 30s
+        labels: {severity: warning, owner: local-lab-operator}
+        annotations: {summary: Direct replica scrapes are incomplete, action: Check discovery and private metrics connectivity before trusting dashboards.}
+      - alert: IngestionDeadLetters
+        expr: max(app_ingestion_state{state="dlqVisible"}) > 0
+        for: 5s
+        labels: {severity: critical, owner: local-lab-operator}
+        annotations: {summary: Dead-letter messages need investigation, action: Correct the durable job cause before audited redrive; do not blindly purge or replay.}
+      - alert: IngestionBacklogAge
+        expr: max(app_ingestion_state{state=~"oldestPendingSeconds|oldestOutboxSeconds"}) > 30
+        for: 30s
+        labels: {severity: warning, owner: local-lab-operator}
+        annotations: {summary: Accepted work is overdue, action: Check relay and worker readiness, queue availability, Mongo and admission limits.}
+      - alert: MongoPoolCheckoutFailures
+        expr: sum(rate(app_mongo_pool_checkout_failures_total[5m])) > 0
+        for: 30s
+        labels: {severity: warning, owner: local-lab-operator}
+        annotations: {summary: Bounded database wait failed, action: Compare pool wait, query latency and configured connection budgets before raising pool sizes.}
+      - alert: TelemetryDeliveryLoss
+        expr: sum(increase(telemetry_events_dropped_total[5m])) > 0
+        labels: {severity: warning, owner: local-lab-operator}
+        annotations: {summary: Local evidence transport is losing events, action: Check bounded export buffers and Loki; compare gateway, app and load-generator counts.}
+  - name: availability-error-budget
+    rules:
+      - alert: AvailabilityFastBurn
+        expr: (sum(rate(edge_http_requests_total{route!~"/health|/ready|/metrics|__unmatched__",status_code=~"5..|429|499"}[1h])) / clamp_min(sum(rate(edge_http_requests_total{route!~"/health|/ready|/metrics|__unmatched__",status_code!~"400|401|403"}[1h])), 0.001) > 0.0144) and (sum(rate(edge_http_requests_total{route!~"/health|/ready|/metrics|__unmatched__",status_code=~"5..|429|499"}[5m])) / clamp_min(sum(rate(edge_http_requests_total{route!~"/health|/ready|/metrics|__unmatched__",status_code!~"400|401|403"}[5m])), 0.001) > 0.0144)
+        for: 1m
+        labels: {severity: critical, owner: local-lab-operator}
+        annotations: {summary: 14.4x availability budget burn in both windows, action: Check edge failures and recent changes. Low traffic needs a controlled synthetic journey; this is not proof of a 30-day SLO.}
+      - alert: AvailabilitySlowBurn
+        expr: (sum(rate(edge_http_requests_total{route!~"/health|/ready|/metrics|__unmatched__",status_code=~"5..|429|499"}[6h])) / clamp_min(sum(rate(edge_http_requests_total{route!~"/health|/ready|/metrics|__unmatched__",status_code!~"400|401|403"}[6h])), 0.001) > 0.006) and (sum(rate(edge_http_requests_total{route!~"/health|/ready|/metrics|__unmatched__",status_code=~"5..|429|499"}[30m])) / clamp_min(sum(rate(edge_http_requests_total{route!~"/health|/ready|/metrics|__unmatched__",status_code!~"400|401|403"}[30m])), 0.001) > 0.006)
+        for: 1m
+        labels: {severity: warning, owner: local-lab-operator}
+        annotations: {summary: 6x availability budget burn in both windows, action: Inspect sustained service degradation and queue age. Client disconnects are conservatively treated as failures in this local SLI.}

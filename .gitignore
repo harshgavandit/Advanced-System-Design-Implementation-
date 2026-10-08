@@ -1,0 +1,56 @@
+hooks/denied.log
+.worktrees/
+.DS_Store
+season-1/2.vertical-vs-horizontal-scaling/servers/nginx/run/
+season-1/2.vertical-vs-horizontal-scaling/servers/nginx/modules/
+
+# Dependencies, caches and generated builds
+node_modules/
+.pnpm-store/
+.npm/
+.cache/
+dist/
+coverage/
+.nyc_output/
+*.tsbuildinfo
+.eslintcache
+.stylelintcache
+
+# Local environment values, never real credentials
+.env
+.env.*
+!.env.example
+!.env.*.example
+!.env.sample
+!.env.template
+.secrets/
+*.key
+*.p12
+*.pfx
+
+# Runtime logs, temporary files and desktop metadata
+logs/
+*.log
+*.pid
+*.pid.lock
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+*~
+Thumbs.db
+Desktop.ini
+
+# Generated local scaling-lab output, including archives and private test keys
+season-1/2.vertical-vs-horizontal-scaling/**/artifacts/
+season-1/2.vertical-vs-horizontal-scaling/bench/results/
+season-1/2.vertical-vs-horizontal-scaling/**/playwright-report/
+season-1/2.vertical-vs-horizontal-scaling/**/test-results/
+
+# Compiled Go executables, keep .go sources and go.mod/go.sum
+season-1/2.vertical-vs-horizontal-scaling/servers/05-go/flipkart
+season-1/2.vertical-vs-horizontal-scaling/servers/05-go/server
+season-1/2.vertical-vs-horizontal-scaling/servers/05-go/*.exe
+season-1/2.vertical-vs-horizontal-scaling/servers/05-go/*.test
+season-1/2.vertical-vs-horizontal-scaling/servers/05-go/bin/

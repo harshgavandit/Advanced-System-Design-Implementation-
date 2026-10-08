@@ -1,0 +1,23 @@
+global: {scrape_interval: 5s, evaluation_interval: 5s}
+rule_files: [/etc/prometheus/alerts.yaml]
+alerting:
+  alertmanagers:
+    - static_configs: [{targets: ['alertmanager:9093']}]
+scrape_configs:
+  - job_name: production-lab-api
+    dns_sd_configs: [{names: [api], type: A, port: 5002, refresh_interval: 5s}]
+    relabel_configs: [{target_label: environment, replacement: local-synthetic}]
+  - job_name: production-lab-worker
+    dns_sd_configs: [{names: [worker], type: A, port: 5002, refresh_interval: 5s}]
+    relabel_configs: [{target_label: environment, replacement: local-synthetic}]
+  - job_name: production-lab-outbox
+    dns_sd_configs: [{names: [outbox], type: A, port: 5002, refresh_interval: 5s}]
+    relabel_configs: [{target_label: environment, replacement: local-synthetic}]
+  - job_name: production-lab-edge
+    static_configs: [{targets: ['telemetry:5002']}]
+  - job_name: production-lab-loki
+    static_configs: [{targets: ['loki:3100']}]
+  - job_name: production-lab-tempo
+    static_configs: [{targets: ['tempo:3200']}]
+  - job_name: production-lab-alertmanager
+    static_configs: [{targets: ['alertmanager:9093']}]

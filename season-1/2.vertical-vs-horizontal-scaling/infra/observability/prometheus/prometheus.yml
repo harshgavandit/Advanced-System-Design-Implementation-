@@ -1,0 +1,42 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+
+scrape_configs:
+  - job_name: node
+    static_configs:
+      - targets: [host.docker.internal:5001]
+        labels:
+          implementation: node
+
+  - job_name: express
+    static_configs:
+      - targets: [host.docker.internal:5002]
+        labels:
+          implementation: express
+
+  - job_name: fastify
+    static_configs:
+      - targets: [host.docker.internal:5003]
+        labels:
+          implementation: fastify
+
+  - job_name: nestjs
+    static_configs:
+      - targets: [host.docker.internal:5004]
+        labels:
+          implementation: nestjs
+
+  - job_name: go
+    static_configs:
+      - targets: [host.docker.internal:5005]
+        labels:
+          implementation: go
+
+  - job_name: redis-exporter
+    static_configs:
+      - targets: [redis-exporter:9121]
+
+  - job_name: mongodb-exporter
+    static_configs:
+      - targets: [mongodb-exporter:9216]

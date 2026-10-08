@@ -1,0 +1,28 @@
+services:
+  mongo:
+    networks: [backend, edge]
+    ports: ['127.0.0.1:28047:27017']
+    volumes: !override ['ingestion-test-mongo:/data/db']
+  api:
+    environment:
+      MONGO_URI: mongodb://mongo:27017/ingestion_test?replicaSet=production-lab
+      INGESTION_BACKLOG_LIMIT: '3'
+  gateway:
+    ports: !override ['127.0.0.1:18084:8080']
+  queue:
+    ports: ['127.0.0.1:19324:9324']
+    networks: [backend, edge]
+  worker:
+    profiles: [manual]
+    environment:
+      MONGO_URI: mongodb://mongo:27017/ingestion_test?replicaSet=production-lab
+      INGESTION_BACKLOG_LIMIT: '3'
+  outbox:
+    profiles: [manual]
+    environment:
+      MONGO_URI: mongodb://mongo:27017/ingestion_test?replicaSet=production-lab
+      INGESTION_BACKLOG_LIMIT: '3'
+volumes:
+  ingestion-test-mongo:
+    external: true
+    name: scaling-ingestion-test_mongo-data

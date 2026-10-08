@@ -1,0 +1,3 @@
+services:
+  prometheus:
+    volumes: ['./prometheus-vertical.yaml:/etc/prometheus/prometheus.yml:ro']

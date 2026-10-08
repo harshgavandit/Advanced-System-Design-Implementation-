@@ -1,0 +1,117 @@
+name: scaling-operations-test
+x-api: &api
+  image: ${LAB_IMAGE:-scaling-express:ci}
+  init: true
+  read_only: true
+  tmpfs: ['/tmp:size=32m,mode=1777']
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  cpus: 1
+  mem_limit: 1g
+  networks: [backend]
+  stop_grace_period: 30s
+  logging: {driver: json-file, options: {max-size: '5m', max-file: '2'}}
+  labels: {scaling.owner: operations-test}
+  environment: &environment
+    NODE_ENV: production
+    MONGO_AUTO_INDEX: 'true'
+    MONGO_URI: mongodb://mongo:27017/operations_test?replicaSet=operations
+    REDIS_URL: redis://redis:6379
+    JWT_ACCESS_SECRET: ${LAB_ACCESS_SECRET:?Explicit synthetic key}
+    JWT_REFRESH_SECRET: ${LAB_REFRESH_SECRET:?Explicit synthetic key}
+    SQS_REGION: us-east-1
+    SQS_ENDPOINT: http://queue:9324
+    SQS_QUEUE_URL: http://queue:9324/000000000000/ingestion-jobs
+    SQS_DLQ_URL: http://queue:9324/000000000000/ingestion-dlq
+    SQS_LOCAL_EMULATOR: 'true'
+    JWT_ACCESS_EXPIRES_IN: 15m
+services:
+  mongo:
+    image: mongo@sha256:5d7043a4ffe02b9ed1b6e0bab057546981af5ca0a79107e9c461e49bc44c0a7b
+    command: [mongod, --replSet, operations, --bind_ip_all, --wiredTigerCacheSizeGB, '0.25']
+    volumes: [mongo-data:/data/db]
+    networks: [backend]
+    cpus: 1
+    mem_limit: 768m
+    labels: {scaling.owner: operations-test}
+    healthcheck: {test: [CMD, mongosh, --quiet, --eval, 'quit(db.adminCommand({ping:1}).ok ? 0 : 1)'], start_period: 15s, start_interval: 3s, interval: 30s, timeout: 3s, retries: 10}
+  mongo-restore:
+    image: mongo@sha256:5d7043a4ffe02b9ed1b6e0bab057546981af5ca0a79107e9c461e49bc44c0a7b
+    command: [mongod, --replSet, operations-restore, --bind_ip_all, --wiredTigerCacheSizeGB, '0.25']
+    volumes: [restore-data:/data/db]
+    networks: [backend]
+    cpus: 1
+    mem_limit: 768m
+    profiles: [restore]
+    labels: {scaling.owner: operations-test}
+    healthcheck: {test: [CMD, mongosh, --quiet, --eval, 'quit(db.adminCommand({ping:1}).ok ? 0 : 1)'], start_period: 15s, start_interval: 3s, interval: 30s, timeout: 3s, retries: 10}
+  redis:
+    image: redis@sha256:3811787313eba226a2ef38658c6ccb91cd5e110edc89c37767de373120a0e5a0
+    command: [redis-server, --save, '', --appendonly, 'no', --maxmemory, 64mb, --maxmemory-policy, allkeys-lru]
+    networks: [backend]
+    cpus: 0.25
+    mem_limit: 128m
+  queue:
+    image: softwaremill/elasticmq-native@sha256:e4580ab9ad1bd5cd37b4ba04911bc5ccc8cd2d9ab4de56ece65acee71c24e05c
+    volumes: ['../../infra/compose/ingestion.conf:/opt/elasticmq.conf:ro']
+    environment: {JAVA_OPTS: '-Dconfig.file=/opt/elasticmq.conf'}
+    networks: [backend]
+    cpus: 0.5
+    mem_limit: 256m
+  api:
+    <<: *api
+    ports: ['127.0.0.1:18086:5002']
+  worker:
+    <<: *api
+    command: [node, dist/worker.js]
+    cpus: 0.5
+    mem_limit: 256m
+    environment: {<<: *environment, SERVICE_ROLE: worker}
+  outbox:
+    <<: *api
+    command: [node, dist/outbox.js]
+    cpus: 0.5
+    mem_limit: 256m
+    environment: {<<: *environment, SERVICE_ROLE: outbox}
+  api-load:
+    <<: *api
+    profiles: [load]
+    environment: {<<: *environment, MONGO_AUTO_INDEX: 'false', PUBLIC_CATALOG_CACHE: 'true'}
+  gateway-load:
+    image: nginx@sha256:a8b39bd9cf0f83869a2162827a0caf6137ddf759d50a171451b335cecc87d236
+    profiles: [load]
+    user: '101:101'
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs: ['/tmp:size=32m,uid=101,gid=101', '/var/cache/nginx:size=16m,uid=101,gid=101', '/var/run:size=1m,uid=101,gid=101']
+    ports: ['127.0.0.1:18089:8080']
+    volumes: ['./load-gateway.conf:/etc/nginx/nginx.conf:ro']
+    networks: [backend]
+    cpus: 0.25
+    mem_limit: 128m
+    labels: {scaling.owner: operations-test}
+  api-restore:
+    <<: *api
+    profiles: [restore]
+    ports: ['127.0.0.1:18087:5002']
+    environment: {<<: *environment, MONGO_URI: 'mongodb://mongo-restore:27017/operations_test?replicaSet=operations-restore', MONGO_AUTO_INDEX: 'false'}
+  worker-restore:
+    <<: *api
+    profiles: [restore]
+    command: [node, dist/worker.js]
+    cpus: 0.5
+    mem_limit: 256m
+    environment: {<<: *environment, SERVICE_ROLE: worker, MONGO_URI: 'mongodb://mongo-restore:27017/operations_test?replicaSet=operations-restore', MONGO_AUTO_INDEX: 'false'}
+  outbox-restore:
+    <<: *api
+    profiles: [restore]
+    command: [node, dist/outbox.js]
+    cpus: 0.5
+    mem_limit: 256m
+    environment: {<<: *environment, SERVICE_ROLE: outbox, MONGO_URI: 'mongodb://mongo-restore:27017/operations_test?replicaSet=operations-restore', MONGO_AUTO_INDEX: 'false'}
+networks:
+  backend: {}
+volumes:
+  mongo-data: {external: true, name: scaling-operations-test_mongo-data}
+  restore-data: {external: true, name: scaling-operations-test_restore-data}

@@ -1,0 +1,10 @@
+{
+  "name": "scaling-phase0-verification",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test unit/*.test.mjs",
+    "contract": "node run-contract.mjs",
+    "fixtures": "node ../../bench/fixtures/generate.mjs"
+  }
+}

@@ -1,0 +1,6 @@
+services:
+  api:
+    command: [node, dist/server.js]
+    environment: {WORKERS: '4', CLUSTER_METRICS_PORT: '5006'}
+    cpus: 4
+    mem_limit: 4g

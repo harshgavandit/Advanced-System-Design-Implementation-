@@ -1,0 +1,7 @@
+{
+  "name": "scaling-dashboard-verification",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "devDependencies": {"playwright": "1.63.0"}
+}

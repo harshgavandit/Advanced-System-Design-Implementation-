@@ -1,0 +1,23 @@
+{
+  "enabled": false,
+  "environment": "staging",
+  "accountId": "000000000000",
+  "region": "ap-south-1",
+  "repository": "PLACEHOLDER-ECR-REPOSITORY",
+  "cluster": "scaling-staging",
+  "services": {
+    "api": "api",
+    "worker": "worker",
+    "outbox": "outbox"
+  },
+  "migrationTask": "PLACEHOLDER-MIGRATION-TASK-ARN",
+  "subnets": [
+    "PLACEHOLDER-PRIVATE-SUBNET-A",
+    "PLACEHOLDER-PRIVATE-SUBNET-B"
+  ],
+  "securityGroup": "PLACEHOLDER-TASK-SECURITY-GROUP",
+  "url": "https://PLACEHOLDER.example.invalid",
+  "loadBalancerDimension": "PLACEHOLDER-ALB-ARN-SUFFIX",
+  "baselineP95Ms": 0,
+  "secretConfiguration": "Use GitHub environment secrets and AWS/Atlas credential chains. No credentials are stored here."
+}

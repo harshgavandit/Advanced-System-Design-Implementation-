@@ -1,0 +1,13 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+scrape_configs:
+  - job_name: production-lab-api
+    dns_sd_configs:
+      - names: [api]
+        type: A
+        port: 5002
+        refresh_interval: 5s
+    relabel_configs:
+      - target_label: environment
+        replacement: local-synthetic

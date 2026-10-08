@@ -1,0 +1,13 @@
+global:
+  resolve_timeout: 1m
+route:
+  receiver: local-evidence
+  group_by: [alertname]
+  group_wait: 1s
+  group_interval: 10s
+  repeat_interval: 1h
+receivers:
+  - name: local-evidence
+    webhook_configs:
+      - url: http://telemetry:5002/alerts
+        send_resolved: true

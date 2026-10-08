@@ -1,0 +1,25 @@
+name: scaling-phase0
+services:
+  redis:
+    image: redis@sha256:3811787313eba226a2ef38658c6ccb91cd5e110edc89c37767de373120a0e5a0
+    ports:
+      - '127.0.0.1:28028:6379'
+    command: [redis-server, --save, '', --appendonly, 'no']
+    cpus: 0.25
+    mem_limit: 128m
+  mongo:
+    image: mongo@sha256:5d7043a4ffe02b9ed1b6e0bab057546981af5ca0a79107e9c461e49bc44c0a7b
+    command: [mongod, --port, '28027', --bind_ip_all, --replSet, phase0, --wiredTigerCacheSizeGB, '0.25']
+    ports:
+      - '127.0.0.1:28027:28027'
+    volumes:
+      - ./artifacts/mongo:/data/db
+    cpus: 1
+    mem_limit: 768m
+    labels:
+      scaling.owner: phase0-contract-tests
+    healthcheck:
+      test: [CMD, mongosh, --port, '28027', --quiet, --eval, 'db.adminCommand({ping:1}).ok']
+      interval: 2s
+      timeout: 5s
+      retries: 30

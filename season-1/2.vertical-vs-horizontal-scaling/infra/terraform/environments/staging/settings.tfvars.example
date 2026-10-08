@@ -1,0 +1,17 @@
+cloud_enabled = false
+environment = "staging"
+region = "ap-south-1"
+account_id = "000000000000"
+availability_zones = ["ap-south-1a", "ap-south-1b"]
+domain = "PLACEHOLDER.staging.example.invalid"
+zone_id = "PLACEHOLDER"
+github_repository = "PLACEHOLDER/REPOSITORY"
+github_oidc_arn = "PLACEHOLDER"
+incident_owner = "PLACEHOLDER"
+budget_email = "PLACEHOLDER@example.invalid"
+monthly_budget_usd = 300
+image_digest = "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+atlas_project_id = "PLACEHOLDER"
+atlas_region = "AP_SOUTH_1"
+secret_arns = { MONGO_URI = "PLACEHOLDER", MIGRATION_MONGO_URI = "PLACEHOLDER", JWT_ACCESS_SECRET = "PLACEHOLDER", JWT_REFRESH_SECRET = "PLACEHOLDER", REDIS_URL = "PLACEHOLDER" }
+# Supply TF_VAR_redis_auth_token and TF_VAR_atlas_passwords out of band only.

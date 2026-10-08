@@ -1,0 +1,95 @@
+name: scaling-production-lab
+x-bounded-logs: &bounded-logs
+  driver: json-file
+  options: {max-size: '10m', max-file: '3'}
+services:
+  mongo:
+    logging: *bounded-logs
+    image: mongo@sha256:5d7043a4ffe02b9ed1b6e0bab057546981af5ca0a79107e9c461e49bc44c0a7b
+    command: [mongod, --replSet, production-lab, --bind_ip_all, --wiredTigerCacheSizeGB, '0.25']
+    volumes: ['mongo-data:/data/db']
+    networks: [backend]
+    cpus: 1
+    mem_limit: 768m
+    healthcheck:
+      test: [CMD, mongosh, --quiet, --eval, 'quit(db.adminCommand({ping:1}).ok ? 0 : 1)']
+      start_period: 15s
+      start_interval: 3s
+      interval: 30s
+      timeout: 4s
+      retries: 20
+    labels: {scaling.owner: production-lab}
+  mongo-init:
+    logging: *bounded-logs
+    image: mongo@sha256:5d7043a4ffe02b9ed1b6e0bab057546981af5ca0a79107e9c461e49bc44c0a7b
+    command: [mongosh, 'mongodb://mongo:27017/?directConnection=true', --quiet, /init.js]
+    volumes: ['./init-mongo.js:/init.js:ro']
+    networks: [backend]
+    depends_on: {mongo: {condition: service_healthy}}
+    restart: 'no'
+    cpus: 0.25
+    mem_limit: 256m
+  redis:
+    logging: *bounded-logs
+    image: redis@sha256:3811787313eba226a2ef38658c6ccb91cd5e110edc89c37767de373120a0e5a0
+    command: [redis-server, --save, '', --appendonly, 'no', --maxmemory, 64mb, --maxmemory-policy, allkeys-lru]
+    networks: [backend]
+    cpus: 0.25
+    mem_limit: 128m
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+  api:
+    logging: *bounded-logs
+    build:
+      context: ../../servers/02-express
+      args: {SOURCE_TREE_SHA256: '${LAB_SOURCE_TREE_SHA256:-unrecorded}'}
+    image: ${LAB_IMAGE:-scaling-express:phase6}
+    init: true
+    read_only: true
+    tmpfs: ['/tmp:size=32m,mode=1777']
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    environment:
+      NODE_ENV: production
+      MONGO_AUTO_INDEX: 'true' # Explicit synthetic lab bootstrap; cloud tasks require the migration runner.
+      PORT: '5002'
+      MONGO_URI: mongodb://mongo:27017/production_lab?replicaSet=production-lab
+      REDIS_URL: redis://redis:6379
+      JWT_ACCESS_SECRET: ${LAB_ACCESS_SECRET:?Run scripts/local/stack.ps1}
+      JWT_REFRESH_SECRET: ${LAB_REFRESH_SECRET:?Run scripts/local/stack.ps1}
+      JWT_ACCESS_EXPIRES_IN: 15m
+      JWT_REFRESH_EXPIRES_IN: 7d
+      MONGO_SELECT_TIMEOUT_MS: '2000'
+      LOG_LEVEL: info
+      PUBLIC_CATALOG_CACHE: ${LAB_PUBLIC_CACHE:-false}
+      MONGO_POOL_WAIT_MS: '500'
+    networks: [backend]
+    depends_on:
+      mongo-init: {condition: service_completed_successfully}
+      redis: {condition: service_healthy}
+    cpus: 1
+    mem_limit: 1g
+    stop_grace_period: 25s
+    labels: {scaling.owner: production-lab}
+  gateway:
+    logging: *bounded-logs
+    image: nginx@sha256:a8b39bd9cf0f83869a2162827a0caf6137ddf759d50a171451b335cecc87d236
+    volumes: ['./gateway.conf:/etc/nginx/nginx.conf:ro','./edge-logging-off.conf:/etc/nginx/edge-logging.conf:ro']
+    ports: ['127.0.0.1:18082:8080']
+    networks: [backend, edge]
+    depends_on: {api: {condition: service_healthy}}
+    read_only: true
+    tmpfs: ['/tmp:size=32m,mode=1777','/var/cache/nginx:size=16m','/var/run:size=1m']
+    cpus: 0.25
+    mem_limit: 128m
+    stop_grace_period: 10s
+networks:
+  backend: {internal: true}
+  edge: {}
+volumes:
+  mongo-data:
+    external: true
+    name: scaling-production-lab_mongo-data

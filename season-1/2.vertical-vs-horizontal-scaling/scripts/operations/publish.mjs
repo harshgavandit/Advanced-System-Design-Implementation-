@@ -1,0 +1,24 @@
+import assert from 'node:assert/strict';import {spawnSync} from 'node:child_process';import {readFile,writeFile} from 'node:fs/promises';import {createReadStream} from 'node:fs';import {createHash} from 'node:crypto';import {resolve,dirname} from 'node:path';import {fileURLToPath} from 'node:url';import {validateTarget} from './release-policy.mjs';
+const topic=resolve(dirname(fileURLToPath(import.meta.url)),'../..'),folder=resolve(topic,'infra/compose/artifacts/ci');
+const target=validateTarget(JSON.parse(process.env.CLOUD_TARGET_JSON??'{}'));
+assert.equal(process.env.GITHUB_REF,'refs/heads/main');assert.match(process.env.RELEASE_SOURCE_SHA??'',/^[a-f0-9]{40}$/);
+const identity=JSON.parse(await readFile(resolve(folder,'image-identity.json'),'utf8')),security=JSON.parse(await readFile(resolve(folder,'security-summary.json'),'utf8'));
+assert.equal(identity.durabilityPassed,true);assert.equal(security.passed,true);assert.equal(identity.imageId,security.imageId);assert.equal(identity.archiveSha256,security.archiveSha256);
+assert.equal(security.sourceTreeSha256,identity.sourceTreeSha256);assert.equal(security.matchCounts.High??0,0);assert.equal(security.matchCounts.Critical??0,0);assert.deepEqual(security.exceptions,[]);
+const operations=JSON.parse(await readFile(resolve(folder,'operations-summary.json'),'utf8')),terraform=JSON.parse(await readFile(resolve(folder,'terraform-verification.json'),'utf8'));
+assert.equal(operations.passed,true);assert.equal(operations.imageId,identity.imageId);assert.equal(operations.sourceTreeSha256,identity.sourceTreeSha256);assert.equal(terraform.passed,true);assert.equal(terraform.cloudApplied,false);
+const hash=createHash('sha256');for await(const chunk of createReadStream(resolve(folder,'ci-image.tar')))hash.update(chunk);assert.equal(hash.digest('hex'),identity.archiveSha256);
+function run(binary,args,{input,capture=false}={}){const result=spawnSync(binary,args,{encoding:'utf8',input,stdio:capture?'pipe':input?['pipe','inherit','inherit']:'inherit',timeout:120000});assert.equal(result.status,0,binary+' failed');return result.stdout?.trim();}
+assert.equal(run(process.execPath,[resolve(topic,'scripts/local/source-hash.mjs')],{capture:true}),identity.sourceTreeSha256,'Published image must belong to the checked-out source');
+const caller=JSON.parse(run('aws',['sts','get-caller-identity','--output','json'],{capture:true}));assert.equal(caller.Account,target.accountId);
+run('docker',['load','--input',resolve(folder,'ci-image.tar')]);assert.equal(run('docker',['image','inspect','--format','{{.Id}}','scaling-express:ci'],{capture:true}),identity.imageId);
+const password=run('aws',['ecr','get-login-password','--region',target.region],{capture:true});
+run('docker',['login','--username','AWS','--password-stdin',target.repository.split('/')[0]],{input:password});
+const tag=target.repository+':'+process.env.RELEASE_SOURCE_SHA;run('docker',['tag',identity.imageId,tag]);run('docker',['push',tag]);
+const repositoryName=target.repository.split('/').slice(1).join('/');
+const response=JSON.parse(run('aws',['ecr','describe-images','--repository-name',repositoryName,'--image-ids','imageTag='+process.env.RELEASE_SOURCE_SHA,'--region',target.region,'--output','json'],{capture:true}));
+const digest=response.imageDetails[0].imageDigest;assert.match(digest,/^sha256:[a-f0-9]{64}$/);const image=target.repository+'@'+digest;
+const release={schemaVersion:1,sourceSha:process.env.RELEASE_SOURCE_SHA,digest,image,imageId:identity.imageId,sourceTreeSha256:identity.sourceTreeSha256,archiveSha256:identity.archiveSha256,ciRunId:process.env.CI_RUN_ID,releaseRunId:process.env.GITHUB_RUN_ID,createdAt:new Date().toISOString()};
+await writeFile(resolve(folder,'provenance.json'),JSON.stringify({...release,checks:['static','contract','image','security','terraform','operations'],builder:process.env.GITHUB_WORKFLOW_REF},null,2));
+run('cosign',['sign','--yes',image]);run('cosign',['attest','--yes','--type','spdxjson','--predicate',resolve(folder,'image-sbom.spdx.json'),image]);run('cosign',['attest','--yes','--type','https://scaling-lab.example/provenance/v1','--predicate',resolve(folder,'provenance.json'),image]);
+await writeFile(resolve(folder,'release.json'),JSON.stringify(release,null,2)+'\n');console.log('SIGNED_RELEASE_PUBLISHED '+digest);

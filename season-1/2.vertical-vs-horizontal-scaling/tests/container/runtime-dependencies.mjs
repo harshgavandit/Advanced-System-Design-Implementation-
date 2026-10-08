@@ -1,0 +1,20 @@
+import assert from 'node:assert/strict';
+import {existsSync,readFileSync} from 'node:fs';
+import {createRequire} from 'node:module';
+import {gzipSync,gunzipSync,brotliCompressSync,brotliDecompressSync,zstdCompressSync,zstdDecompressSync} from 'node:zlib';
+const require=createRequire('/app/package.json'),bcrypt=require('bcrypt');
+assert.equal(process.getuid(),1000);assert.equal(process.versions.node,'24.21.0');
+for(const path of ['/bin/sh','/bin/bash','/usr/bin/apk','/usr/bin/apt','/usr/bin/npm','/usr/bin/npx','/usr/local/lib/node_modules/npm','/usr/local/lib/node_modules/corepack','/opt/yarn-v1.22.22'])assert.equal(existsSync(path),false,'Do not ship build tools: '+path);
+const expected=readFileSync('/app/runtime-packages.lock','utf8').trim().split(/\r?\n/).sort();
+const installed=readFileSync('/lib/apk/db/installed','utf8').trim().split(/\n\n/).map(record=>{
+  const name=record.match(/^P:(.+)$/m)?.[1],version=record.match(/^V:(.+)$/m)?.[1];
+  assert.ok(name&&version,'Keep complete installed package provenance');return name+'='+version;
+}).sort();
+assert.deepEqual(installed,expected,'No unlocked transitive runtime packages');
+assert.equal(await bcrypt.compare('synthetic-native-check',await bcrypt.hash('synthetic-native-check',4)),true);
+const data=Buffer.from('synthetic codec compatibility '.repeat(4096));
+for(const [encode,decode] of [[gzipSync,gunzipSync],[brotliCompressSync,brotliDecompressSync],[zstdCompressSync,zstdDecompressSync]])assert.deepEqual(decode(encode(data)),data);
+assert.equal(new Intl.NumberFormat('en-US').format(1234.5),'1,234.5');
+const tls=await fetch('https://nodejs.org/dist/index.json',{signal:AbortSignal.timeout(20000)});
+assert.equal(tls.status,200,'Real HTTPS must validate public certificate chains');await tls.body.cancel();
+console.log('RUNTIME_DEPENDENCIES_PASS locked Node/glibc packages, uid 1000, no shell/installers, native bcrypt, gzip/brotli/zstd, ICU and verified HTTPS');

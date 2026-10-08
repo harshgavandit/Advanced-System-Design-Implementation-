@@ -1,0 +1,29 @@
+{
+  "version": "0.4.0",
+  "mutationOperations": ["createProduct","updateProduct","deleteProduct","addCart","updateCart","adjustCart","deleteCart","addWishlist","deleteWishlist"],
+  "mutationReplay": "Required Idempotency-Key on product, cart and wishlist mutations. Principal/operation scope, normalized input hash, atomic mutation/audit/receipt. Identical retries return the original status/body for 30 days; changed input returns 409. Authentication and quotas still apply to replays.",
+  "base": "openapi.yaml",
+  "implementation": "express",
+  "adminOperations": ["createProduct", "updateProduct", "deleteProduct", "ingestProduct", "getIngestStats", "redriveIngestionJob"],
+  "errorStatuses": [400, 401, 403, 409, 413, 429, 503],
+  "ingestion": {
+    "key": "Required Idempotency-Key, 1-128 letters, digits, dot, underscore, colon or hyphen. Scoped to principal and operation; normalized request hash conflicts return 409.",
+    "acceptance": "202 follows majority commit of job, outbox and audit. Identical replay returns the same jobId and acceptance receipt, even if the job is now terminal. GET gives current status.",
+    "transport": "SQS Standard at-least-once, visibility 60 seconds, max receives 5, source retention 4 days, DLQ retention 14 days. ElasticMQ lacks retention enforcement; cloud startup validates it.",
+    "replayRetention": "No automatic job/outbox deletion. Terminal keys remain replayable until a separately reviewed retention migration exists.",
+    "reconciliation": "Leased outbox send-before-mark; overdue nonterminal sent jobs are republished after 5 minutes. Reserved product ID, product effect and completion commit together.",
+    "authorization": "Only administrators accept and redrive. Status is visible to job owner or administrator. Redrive of a failed job increments generation once, preserving productId."
+  },
+  "refreshRequiredFields": ["accessToken", "refreshToken"],
+  "refreshConcurrency": "One compare-and-swap succeeds. Reuse or a concurrent loser revokes the family and returns 401. Reauthenticate after a race.",
+  "revocation": "Requests authorized before revocation may finish. Requests beginning after majority revocation must fail a linearizable primary session check.",
+  "totals": "Filtered totalItems is exact; unfiltered totalItems is estimated. totalItemsExact identifies the mode.",
+  "offsetLimit": 10000,
+  "limits": {"bodyBytes": 32768, "passwordUtf8Bytes": 72, "authPerIpPerMinute": 30, "authPerAccountPerMinute": 10, "writesPerPrincipalPerMinute": 120},
+  "trust": {
+    "clients": "Body role and forwarded IP headers grant no authority. Signup creates users only.",
+    "administrators": "Role is read from Mongo on every request. Grant roles only through an authenticated audited operator procedure; no public role mutation route exists.",
+    "cache": "Redis cannot authorize. Nginx response caching is disabled.",
+    "storage": "Session and audit collections require restricted deployment credentials. Refresh credentials are stored only as SHA256 hashes."
+  }
+}

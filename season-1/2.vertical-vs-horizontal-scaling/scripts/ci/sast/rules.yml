@@ -1,0 +1,40 @@
+rules:
+  - id: tls-verification-disabled
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: TLS peers must be verified.
+    pattern: '{..., rejectUnauthorized: false, ...}'
+  - id: global-tls-verification-disabled
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: Do not disable certificate checks for the process.
+    pattern: process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"
+  - id: jwt-unbounded-verification
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: JWT verification needs explicit algorithm, issuer and audience options.
+    pattern: $JWT.verify($TOKEN, $SECRET)
+  - id: raw-request-mongo-query
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: Validate and construct Mongo filters instead of passing a raw request object.
+    pattern-either:
+      - pattern: $MODEL.find($REQ.body)
+      - pattern: $MODEL.findOne($REQ.body)
+      - pattern: $MODEL.find($REQ.query)
+      - pattern: $MODEL.findOne($REQ.query)
+  - id: raw-request-shell-execution
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: Never execute request data as a shell command.
+    pattern-either:
+      - pattern: $CHILD.exec($REQ.body.$FIELD, ...)
+      - pattern: $CHILD.execSync($REQ.body.$FIELD, ...)
+      - pattern: $CHILD.exec($REQ.query.$FIELD, ...)
+  - id: error-stack-response
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: Do not return internal stack traces to clients.
+    pattern-either:
+      - pattern: $RES.json($ERR.stack)
+      - pattern: '$RES.json({..., stack: $ERR.stack, ...})'

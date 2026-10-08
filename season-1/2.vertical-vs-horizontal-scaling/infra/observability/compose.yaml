@@ -1,0 +1,117 @@
+name: vertical-observability
+
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: vertical-prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=7d
+      - --web.enable-lifecycle
+      - --web.enable-remote-write-receiver
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    ports:
+      - "127.0.0.1:9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    healthcheck:
+      test: [CMD, wget, -qO-, http://127.0.0.1:9090/-/healthy]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: vertical-grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-vertical-local-admin}
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_USERS_DEFAULT_THEME: dark
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, wget, -qO-, http://127.0.0.1:3000/api/health]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  redis:
+    image: redis:alpine
+    container_name: vertical-redis
+    command: [redis-server, --save, "", --appendonly, "no", --maxmemory, 128mb, --maxmemory-policy, allkeys-lru]
+    ports:
+      - "127.0.0.1:6379:6379"
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  redis-exporter:
+    image: oliver006/redis_exporter:latest
+    container_name: vertical-redis-exporter
+    environment:
+      REDIS_ADDR: redis://redis:6379
+    ports:
+      - "127.0.0.1:9121:9121"
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  mongodb-exporter:
+    image: percona/mongodb_exporter:0.53.0
+    container_name: vertical-mongodb-exporter
+    environment:
+      MONGODB_URI: mongodb://host.docker.internal:27017/admin?directConnection=true
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    ports:
+      - "127.0.0.1:9216:9216"
+    restart: unless-stopped
+
+  k6:
+    image: grafana/k6:latest
+    container_name: vertical-k6
+    profiles:
+      - load
+    command: [run, -o, experimental-prometheus-rw, /scripts/load.js]
+    environment:
+      URL: ${URL:-http://host.docker.internal:5002/products?page=1&limit=20}
+      RATE: ${RATE:-5}
+      DURATION: ${DURATION:-10s}
+      ENCODING: ${ENCODING:-identity}
+      IMPLEMENTATION: ${IMPLEMENTATION:-express}
+      K6_PROMETHEUS_RW_SERVER_URL: http://prometheus:9090/api/v1/write
+      K6_FEATURES: native-histograms
+      K6_PROMETHEUS_RW_STALE_MARKERS: "true"
+      K6_TEST_ID: ${K6_TEST_ID:-local-smoke}
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    volumes:
+      - ../../bench/k6:/scripts:ro
+    depends_on:
+      prometheus:
+        condition: service_healthy
+
+volumes:
+  prometheus-data:
+    name: vertical-prometheus-data
+  grafana-data:
+    name: vertical-grafana-data

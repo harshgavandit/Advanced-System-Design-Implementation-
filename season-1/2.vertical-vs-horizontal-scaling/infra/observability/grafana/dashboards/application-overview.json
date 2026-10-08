@@ -1,0 +1,169 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": false,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" }, "unit": "reqps" },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 0 },
+      "id": 1,
+      "options": { "legend": { "calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom" }, "tooltip": { "mode": "multi", "sort": "desc" } },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "sum by (implementation) (rate(app_http_requests_total{implementation=~\"$implementation\"}[$__rate_interval]))",
+          "legendFormat": "{{implementation}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Request rate",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "continuous-RdYlGr" }, "max": 1, "min": 0, "unit": "percentunit" },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 0 },
+      "id": 2,
+      "options": { "legend": { "calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom" }, "tooltip": { "mode": "multi", "sort": "desc" } },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "(sum by (implementation) (rate(app_http_requests_total{implementation=~\"$implementation\"}[$__rate_interval])) - sum by (implementation) (rate(app_http_requests_total{implementation=~\"$implementation\",status_code!~\"5..\"}[$__rate_interval]))) / clamp_min(sum by (implementation) (rate(app_http_requests_total{implementation=~\"$implementation\"}[$__rate_interval])), 0.000001)",
+          "legendFormat": "{{implementation}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Error rate",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" }, "unit": "s" },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 0 },
+      "id": 3,
+      "options": { "legend": { "calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom" }, "tooltip": { "mode": "multi", "sort": "desc" } },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "histogram_quantile(0.95, sum by (le, implementation) (rate(app_http_request_duration_seconds_bucket{implementation=~\"$implementation\"}[$__rate_interval])))",
+          "legendFormat": "{{implementation}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Latency p95",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" }, "unit": "short" },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 8 },
+      "id": 4,
+      "options": { "legend": { "calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom" }, "tooltip": { "mode": "multi", "sort": "desc" } },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "sum by (implementation) (app_http_requests_in_flight{implementation=~\"$implementation\"})",
+          "legendFormat": "{{implementation}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "In-flight requests",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" }, "unit": "bytes" },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 8 },
+      "id": 5,
+      "options": { "legend": { "calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom" }, "tooltip": { "mode": "multi", "sort": "desc" } },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "{__name__=~\"runtime_process_resident_memory_bytes|runtime_nodejs_heap_size_used_bytes|go_memstats_heap_alloc_bytes\",job=~\"$implementation\"}",
+          "legendFormat": "{{job}} {{__name__}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Runtime memory",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" }, "unit": "short" },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 8 },
+      "id": 6,
+      "options": { "legend": { "calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom" }, "tooltip": { "mode": "multi", "sort": "desc" } },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "{__name__=~\"runtime_nodejs_eventloop_lag_seconds|go_goroutines|go_threads\",job=~\"$implementation\"}",
+          "legendFormat": "{{job}} {{__name__}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Event loop or scheduler activity",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 41,
+  "tags": ["vertical-scaling", "application", "prometheus"],
+  "templating": {
+    "list": [
+      {
+        "allValue": ".*",
+        "current": { "selected": true, "text": "All", "value": "$__all" },
+        "includeAll": true,
+        "label": "Implementation",
+        "multi": true,
+        "name": "implementation",
+        "options": [
+          { "selected": false, "text": "node", "value": "node" },
+          { "selected": false, "text": "express", "value": "express" },
+          { "selected": false, "text": "fastify", "value": "fastify" },
+          { "selected": false, "text": "nestjs", "value": "nestjs" },
+          { "selected": false, "text": "go", "value": "go" }
+        ],
+        "query": "node,express,fastify,nestjs,go",
+        "type": "custom"
+      }
+    ]
+  },
+  "time": { "from": "now-15m", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Vertical Scaling - Application Overview",
+  "uid": "vertical-app-overview",
+  "version": 1,
+  "weekStart": ""
+}

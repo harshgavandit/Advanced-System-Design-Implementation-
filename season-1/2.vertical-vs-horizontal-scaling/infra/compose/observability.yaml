@@ -1,0 +1,12 @@
+services:
+  prometheus:
+    image: prom/prometheus@sha256:efd719c99d83b060d9daefdcf00360461adf279f45ef5391f8d111892118753e
+    command: [--config.file=/etc/prometheus/prometheus.yml, --storage.tsdb.path=/prometheus, --storage.tsdb.retention.time=7d]
+    volumes: ['./prometheus.yaml:/etc/prometheus/prometheus.yml:ro']
+    tmpfs: ['/prometheus:size=256m,uid=65534,gid=65534']
+    ports: ['127.0.0.1:19092:9090']
+    networks: [backend, edge]
+    cpus: 0.5
+    mem_limit: 512m
+    read_only: true
+    security_opt: [no-new-privileges:true]
