@@ -10,4 +10,15 @@ try {
  run(process.execPath,[resolve(topic,'tests/operations/recovery.mjs'),'--profile=smoke'],{...process.env,LAB_IMAGE:identity.imageId});
  for(const [name,file] of [['recovery','recovery/recovery.json'],['rollback','rollback/rollback.json'],['mixed','load/smoke.json']]){const value=JSON.parse(await readFile(resolve(topic,'infra/compose/artifacts/operations',file),'utf8'));assert.equal(value.passed,true);if(name==='recovery')assert.equal(value.image,identity.imageId);if(name==='mixed')assert.ok(value.configuration.every(c=>c.image===identity.imageId));report[name]={passed:true};await writeFile(resolve(folder,name+'-verification.json'),JSON.stringify(value,null,2)+'\n');}
  report.passed=true;
+}catch(error){
+ report.failure=String(error.message).slice(0,300);
+ // Preserve safe synthetic failure reports as well as the stage result. Never
+ // upload backups, signing keys, sessions, database files or raw service logs.
+ for(const [name,file] of [['recovery','recovery/recovery.json'],['rollback','rollback/rollback.json'],['mixed','load/smoke.json']]){
+  try{
+   const value=JSON.parse(await readFile(resolve(topic,'infra/compose/artifacts/operations',file),'utf8'));
+   if(Date.parse(value.startedAt)>=Date.parse(report.startedAt))await writeFile(resolve(folder,name+'-verification.json'),JSON.stringify(value,null,2)+'\n');
+  }catch(failureReportError){if(failureReportError.code!=='ENOENT')throw failureReportError;}
+ }
+ throw error;
 }finally{report.finishedAt=new Date().toISOString();await writeFile(resolve(folder,'operations-summary.json'),JSON.stringify(report,null,2)+'\n');}
