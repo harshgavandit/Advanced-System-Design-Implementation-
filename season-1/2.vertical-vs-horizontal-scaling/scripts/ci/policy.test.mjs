@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as policy from './policy.mjs';
-import {readFileSync} from 'node:fs';
+import {readFileSync,mkdtempSync,rmSync} from 'node:fs';
 import {spawnSync} from 'node:child_process';
-import {basename} from 'node:path';
+import {basename,resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 test('topic changes and delivery workflow changes must run checks while unrelated topics can skip',()=>{
   assert.equal(policy.topicChanged(['season-1/2.vertical-vs-horizontal-scaling/servers/02-express/src/app.ts']),true);
@@ -40,4 +40,17 @@ test('evidence upload cannot include secrets, raw logs, databases or a broad art
   assert.equal(policy.safeArtifact('phase6-observability.json'),true);
   assert.equal(policy.safeArtifact('image-sbom.spdx.json'),true);
   for(const path of ['local-keys.json','events.jsonl','artifacts/**','.env','mongo','server-output-express.txt','../local-keys.json'])assert.equal(policy.safeArtifact(path),false);
+});
+
+test('required gate publishes the full status table even on failure and labels skipped scope honestly',()=>{
+  const directory=mkdtempSync(fileURLToPath(new URL('../../infra/compose/artifacts/summary-test-',import.meta.url)));
+  try{
+    const summary=resolve(directory,'summary.md');
+    const script=fileURLToPath(new URL('./changes.mjs',import.meta.url));
+    const env={...process.env,GITHUB_STEP_SUMMARY:summary,TOPIC_CHANGED:'true',CHECK_RESULTS:JSON.stringify({static:'success',contract:'success',image:'success',security:'failure',terraform:'success',operations:'success'})};
+    assert.notEqual(spawnSync(process.execPath,[script,'--required'],{env,encoding:'utf8'}).status,0);
+    assert.match(readFileSync(summary,'utf8'),/\| security \| failure \|/);
+    assert.equal(spawnSync(process.execPath,[script,'--required'],{env:{...env,TOPIC_CHANGED:'false',CHECK_RESULTS:'{}'},encoding:'utf8'}).status,0);
+    assert.match(readFileSync(summary,'utf8'),/cannot publish a tested release/);
+  }finally{rmSync(directory,{recursive:true,force:true});}
 });

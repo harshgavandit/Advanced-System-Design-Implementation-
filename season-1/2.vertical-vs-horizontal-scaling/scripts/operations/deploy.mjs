@@ -1,11 +1,19 @@
 import assert from 'node:assert/strict';import {spawnSync} from 'node:child_process';import {readFile,writeFile,mkdir} from 'node:fs/promises';import {resolve,dirname} from 'node:path';import {fileURLToPath} from 'node:url';import {setTimeout as delay} from 'node:timers/promises';import {validateTarget,validatePromotion,assessWindow,rollout} from './release-policy.mjs';import {journey} from './journey.mjs';
+import {validateReleaseReference} from './workflow-policy.mjs';
 const topic=resolve(dirname(fileURLToPath(import.meta.url)),'../..'),folder=resolve(topic,'infra/compose/artifacts/ci');await mkdir(folder,{recursive:true});
 const target=validateTarget(JSON.parse(process.env.CLOUD_TARGET_JSON??'{}'));assert.equal(process.env.GITHUB_REF,'refs/heads/main');
+assert.equal(target.environment,process.env.DEPLOY_ENVIRONMENT,'Target must match the approved GitHub environment');
+assert.match(process.env.GITHUB_RUN_ID??'',/^[1-9][0-9]*$/);
 assert.ok(Number.isFinite(target.baselineP95Ms)&&target.baselineP95Ms>0,'A measured staging ALB latency baseline is required before changing services');
 assert.equal(target.subnets?.length,2);assert.ok(target.subnets.every(value=>/^subnet-[a-f0-9]+$/.test(value)));assert.match(target.securityGroup,/^sg-[a-f0-9]+$/);assert.match(target.migrationTask,new RegExp('^arn:aws:ecs:'+target.region+':'+target.accountId+':task-definition/'+target.cluster+'-migration:[0-9]+$'));
 const release=JSON.parse(await readFile(resolve(folder,'release.json'),'utf8'));assert.match(release.digest,/^sha256:[a-f0-9]{64}$/);assert.match(release.sourceSha,/^[a-f0-9]{40}$/);
+validateReleaseReference(release,process.env.RELEASE_RUN_ID);
 assert.equal(release.image,target.repository+'@'+release.digest);
-if(target.environment==='production')validatePromotion(release,JSON.parse(await readFile(resolve(folder,'staging.json'),'utf8')));
+if(target.environment==='production'){
+  const staging=JSON.parse(await readFile(resolve(folder,'staging.json'),'utf8'));
+  validateReleaseReference(release,process.env.RELEASE_RUN_ID,staging,process.env.STAGING_RUN_ID);
+  validatePromotion(release,staging);
+}
 const repository=process.env.GITHUB_REPOSITORY;assert.match(repository??'',/^[\w.-]+\/[\w.-]+$/);
 const certificateIdentity='https://github.com/'+repository+'/.github/workflows/vertical-scaling-release.yml@refs/heads/main';
 function run(binary,args){const result=spawnSync(binary,args,{encoding:'utf8',timeout:120000});assert.equal(result.status,0,binary+' operation failed');return result.stdout.trim();}
@@ -17,7 +25,7 @@ run('cosign',['verify',...verifyArgs,release.image]);
 const attestations=run('cosign',['verify-attestation',...verifyArgs,'--type','https://scaling-lab.example/provenance/v1',release.image]).split('\n').filter(Boolean).map(line=>JSON.parse(Buffer.from(JSON.parse(line).payload,'base64').toString()));
 assert.ok(attestations.some(row=>row.predicate.sourceSha===release.sourceSha&&row.predicate.archiveSha256===release.archiveSha256),'Signed provenance must match this release manifest');
 const allowed=['family','taskRoleArn','executionRoleArn','networkMode','containerDefinitions','volumes','placementConstraints','requiresCompatibilities','cpu','memory','runtimePlatform','ephemeralStorage','proxyConfiguration'];
-const previous={},definitions={},events=[];const report={startedAt:new Date().toISOString(),passed:false,environment:target.environment,digest:release.digest,sourceSha:release.sourceSha,sourceTreeSha256:release.sourceTreeSha256,imageId:release.imageId,cloud:true,baselineP95Ms:target.baselineP95Ms};
+const previous={},definitions={},events=[];const report={startedAt:new Date().toISOString(),passed:false,environment:target.environment,digest:release.digest,sourceSha:release.sourceSha,sourceTreeSha256:release.sourceTreeSha256,imageId:release.imageId,runId:process.env.GITHUB_RUN_ID,releaseRunId:release.releaseRunId,ciRunId:release.ciRunId,cloud:true,baselineP95Ms:target.baselineP95Ms};
 async function waitService(role){const deadline=Date.now()+5*60000;while(Date.now()<deadline){const service=aws(['ecs','describe-services','--cluster',target.cluster,'--services',target.services[role]]).services[0];assert.ok(service);if(service.deployments.some(d=>d.rolloutState==='FAILED'))throw Error(role+' rollout failed');if(service.deployments.length===1&&service.runningCount===service.desiredCount&&service.pendingCount===0)return;await delay(10000);}throw Error(role+' did not stabilize within five minutes');}
 function definition(arn){return aws(['ecs','describe-task-definition','--task-definition',arn]).taskDefinition;}
 function register(old){const body=Object.fromEntries(allowed.filter(key=>old[key]!==undefined).map(key=>[key,old[key]]));assert.ok(body.family.startsWith(target.cluster+'-'));const app=body.containerDefinitions.find(c=>c.name==='app');assert.ok(app);app.image=release.image;return aws(['ecs','register-task-definition','--cli-input-json',JSON.stringify(body)]).taskDefinition.taskDefinitionArn;}

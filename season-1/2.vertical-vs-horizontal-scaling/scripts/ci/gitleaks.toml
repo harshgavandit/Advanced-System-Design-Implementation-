@@ -1,0 +1,5 @@
+title = "Scaling CI secret scan"
+
+# Retain all bundled detection rules. No finding suppressions or baselines.
+[extend]
+useDefault = true

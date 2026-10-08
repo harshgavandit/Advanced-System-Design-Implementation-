@@ -13,7 +13,7 @@ assert.ok(['static','contract','image','security','terraform','operations'].incl
 const artifacts=resolve(topic,'infra/compose/artifacts/ci');await mkdir(artifacts,{recursive:true});
 process.env.TEMP=resolve(topic,'infra/compose/artifacts/tool-temp');process.env.TMP=process.env.TEMP;
 await mkdir(process.env.TEMP,{recursive:true});
-const report={stage,startedAt:new Date().toISOString(),passed:false,checks:[]};
+const report={stage,startedAt:new Date().toISOString(),passed:false,sourceSha:process.env.GITHUB_SHA??null,ciRunId:process.env.GITHUB_RUN_ID??null,ciRunAttempt:process.env.GITHUB_RUN_ATTEMPT??null,checks:[]};
 const fingerprint=spawnSync(process.execPath,[resolve(topic,'scripts/local/source-hash.mjs')],{encoding:'utf8'});
 assert.equal(fingerprint.status,0,'Cannot identify the source under verification');
 report.sourceTreeSha256=fingerprint.stdout.trim();

@@ -5,6 +5,7 @@ import {createReadStream} from 'node:fs';
 import {createHash,randomBytes} from 'node:crypto';
 import {resolve,dirname,relative,isAbsolute} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {scannerArguments} from './scanner-policy.mjs';
 const topic=resolve(dirname(fileURLToPath(import.meta.url)),'../..'),repo=resolve(topic,'../..'),results=resolve(topic,'infra/compose/artifacts/ci');
 await mkdir(results,{recursive:true});const snapshot=await mkdtemp(resolve(results,'source-'));
 const archive=resolve(results,'ci-image.tar'),identity=JSON.parse(await readFile(resolve(results,'image-identity.json'),'utf8'));
@@ -24,9 +25,13 @@ for(const path of inventory.stdout.split('\0').filter(Boolean)){
 const tools={gitleaks:'ghcr.io/gitleaks/gitleaks@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f',hadolint:'hadolint/hadolint@sha256:32dac94127fd60b7b7e3fbfc65e1383b9b5e25c9bfd7b8536de7a539fe68a12d',syft:'ghcr.io/anchore/syft@sha256:0356562f495d432056237fbea5cbc2d4839c9c75cd500784a66de2e7cc95ca7c',grype:'ghcr.io/anchore/grype@sha256:5c88961f4130e830542d441c7ed6c78baa28e799163abac53d2be4923fb5ab7d'};
 const cache=resolve(results,'grype-cache');await mkdir(cache,{recursive:true});
 const scratch=await mkdtemp(resolve(results,'scan-temp-'));
+const regression=spawnSync(process.execPath,[resolve(topic,'scripts/ci/scanner-regression.mjs')],{stdio:'inherit'});
+assert.equal(regression.status,0,'Scanner permission and detection regression must pass before scanning release source');
 function scan(image,args,{input,allowFindings=false}={}){
   const name='scaling-ci-scan-'+randomBytes(8).toString('hex');
-  const result=spawnSync('docker',['run','--rm','--name',name,'--label','scaling.owner=ci-security','--cpus=1','--memory=1g','--cap-drop=ALL','--security-opt=no-new-privileges:true','--read-only','-v',scratch+':/tmp','-v',snapshot+':/src:ro','-v',results+':/results','-v',cache+':/cache','-e','HOME=/tmp','-e','SEMGREP_SEND_METRICS=off','-e','XDG_CACHE_HOME=/cache','-e','GRYPE_DB_CACHE_DIR=/cache',...(input?['-i']:[]),image,...args],{encoding:'utf8',input,timeout:20*60*1000,stdio:input?['pipe','inherit','inherit']:'inherit'});
+  // mkdtemp creates owner-only folders on Linux. Match that owner instead of
+  // granting extra capabilities or making private scan folders world-writable.
+  const result=spawnSync('docker',scannerArguments({name,scratch,snapshot,results,cache,image,args,input,uid:process.getuid?.(),gid:process.getgid?.()}),{encoding:'utf8',input,timeout:20*60*1000,stdio:input!==undefined?['pipe','inherit','inherit']:'inherit'});
   if(result.error){
     // Killing the CLI on timeout does not necessarily stop its container.
     const owner=spawnSync('docker',['inspect','--format','{{index .Config.Labels "scaling.owner"}}',name],{encoding:'utf8'});
@@ -36,7 +41,8 @@ function scan(image,args,{input,allowFindings=false}={}){
   assert.ok(result.status===0||(allowFindings&&result.status===2),'Security scan failed; do not bypass findings or an unavailable database');
   return result.status;
 }
-scan(tools.gitleaks,['dir','/src','--redact','--report-format','json','--report-path','/results/secrets-redacted.json']);
+scan(tools.gitleaks,['dir','/src','--config','/src/season-1/2.vertical-vs-horizontal-scaling/scripts/ci/gitleaks.toml','--redact','--report-format','json','--report-path','/results/secrets-redacted.json']);
+assert.deepEqual(JSON.parse(await readFile(resolve(results,'secrets-redacted.json'),'utf8')),[],'Secret scan must complete with an empty findings report');
 scan(tools.hadolint,['/bin/hadolint','--failure-threshold','warning','-'],{input:await readFile(resolve(topic,'servers/02-express/Dockerfile'),'utf8')});
 scan('rhysd/actionlint@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667',['-color',...['ci','release','deploy'].map(name=>'/src/.github/workflows/vertical-scaling-'+name+'.yml')]);
 const semgrep='semgrep/semgrep@sha256:93963d9295a366f59e4850127b1550400ee7b388f04fe144e4a1f6325d96e01b';

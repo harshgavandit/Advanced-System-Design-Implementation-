@@ -11,8 +11,26 @@ concurrency:
 env:
   TOPIC: season-1/2.vertical-vs-horizontal-scaling
 jobs:
-  publish:
+  qualify:
     if: vars.SCALING_CLOUD_ENABLED == 'true' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs: {eligible: '${{ steps.evidence.outputs.eligible }}'}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with: {ref: '${{ github.event.workflow_run.head_sha }}', persist-credentials: false}
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with: {node-version: 24.21.0}
+      - id: evidence
+        name: Require the complete trusted CI attempt
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_SHA: ${{ github.event.workflow_run.head_sha }}
+          REFERENCE_RUN_ID: ${{ github.event.workflow_run.id }}
+        run: node "$TOPIC/scripts/operations/verify-workflow.mjs" --kind=ci --allow-unrelated
+  publish:
+    needs: qualify
+    if: needs.qualify.outputs.eligible == 'true'
     runs-on: ubuntu-24.04
     environment: release
     timeout-minutes: 30
@@ -41,18 +59,24 @@ jobs:
           path: season-1/2.vertical-vs-horizontal-scaling/infra/compose/artifacts/ci
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ github.token }}
-      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
-        with:
-          role-to-assume: ${{ vars.SCALING_RELEASE_ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION }}
-          role-session-name: scaling-release
-          allowed-account-ids: ${{ vars.AWS_ACCOUNT_ID }}
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
         with:
           name: scaling-operations-evidence
           path: season-1/2.vertical-vs-horizontal-scaling/infra/compose/artifacts/ci
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ github.token }}
+      - name: Recheck the latest CI attempt before cloud authentication
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_SHA: ${{ github.event.workflow_run.head_sha }}
+          REFERENCE_RUN_ID: ${{ github.event.workflow_run.id }}
+        run: node "$TOPIC/scripts/operations/verify-workflow.mjs" --kind=ci
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.SCALING_RELEASE_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+          role-session-name: scaling-release
+          allowed-account-ids: ${{ vars.AWS_ACCOUNT_ID }}
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
         with:
           name: scaling-terraform-evidence

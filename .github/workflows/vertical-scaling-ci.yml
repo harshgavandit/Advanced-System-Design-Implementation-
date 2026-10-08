@@ -39,6 +39,13 @@ jobs:
           cache: pnpm
           cache-dependency-path: season-1/2.vertical-vs-horizontal-scaling/servers/02-express/pnpm-lock.yaml
       - run: node "$TOPIC/scripts/ci/run.mjs" --stage=static
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: scaling-static-evidence
+          retention-days: 7
+          path: |
+            season-1/2.vertical-vs-horizontal-scaling/infra/compose/artifacts/ci/ci-static.json
   contract:
     needs: changes
     if: needs.changes.outputs.topic == 'true'
@@ -60,6 +67,7 @@ jobs:
           path: |
             season-1/2.vertical-vs-horizontal-scaling/tests/phase0/artifacts/contract-report-express.json
             season-1/2.vertical-vs-horizontal-scaling/tests/phase0/artifacts/fixture-manifest.json
+            season-1/2.vertical-vs-horizontal-scaling/infra/compose/artifacts/ci/ci-contract.json
   image:
     needs: changes
     if: needs.changes.outputs.topic == 'true'
@@ -74,6 +82,13 @@ jobs:
         with: {node-version: 24.21.0}
       - run: pnpm --pm-on-fail=ignore --dir "$TOPIC/servers/02-express" install --frozen-lockfile
       - run: node "$TOPIC/scripts/ci/run.mjs" --stage=image
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: scaling-image-stage-evidence
+          retention-days: 7
+          path: |
+            season-1/2.vertical-vs-horizontal-scaling/infra/compose/artifacts/ci/ci-image.json
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: scaling-tested-image
@@ -109,6 +124,7 @@ jobs:
             season-1/2.vertical-vs-horizontal-scaling/infra/compose/artifacts/ci/image-vulnerabilities.json
             season-1/2.vertical-vs-horizontal-scaling/infra/compose/artifacts/ci/security-summary.json
             season-1/2.vertical-vs-horizontal-scaling/infra/compose/artifacts/ci/sast.json
+            season-1/2.vertical-vs-horizontal-scaling/infra/compose/artifacts/ci/ci-security.json
   terraform:
     needs: changes
     if: needs.changes.outputs.topic == 'true'
@@ -127,6 +143,7 @@ jobs:
           retention-days: 7
           path: |
             season-1/2.vertical-vs-horizontal-scaling/infra/compose/artifacts/ci/terraform-verification.json
+            season-1/2.vertical-vs-horizontal-scaling/infra/compose/artifacts/ci/ci-terraform.json
   operations:
     needs: [changes, image]
     if: needs.changes.outputs.topic == 'true'
@@ -152,6 +169,7 @@ jobs:
             season-1/2.vertical-vs-horizontal-scaling/infra/compose/artifacts/ci/recovery-verification.json
             season-1/2.vertical-vs-horizontal-scaling/infra/compose/artifacts/ci/rollback-verification.json
             season-1/2.vertical-vs-horizontal-scaling/infra/compose/artifacts/ci/mixed-verification.json
+            season-1/2.vertical-vs-horizontal-scaling/infra/compose/artifacts/ci/ci-operations.json
   required:
     name: Scaling required checks
     needs: [changes, static, contract, image, security, terraform, operations]

@@ -36,6 +36,18 @@ jobs:
           path: season-1/2.vertical-vs-horizontal-scaling/infra/compose/artifacts/ci
           run-id: ${{ inputs.staging_run_id }}
           github-token: ${{ github.token }}
+      - name: Verify the selected trusted release run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REFERENCE_RUN_ID: ${{ inputs.release_run_id }}
+        run: node "$TOPIC/scripts/operations/verify-workflow.mjs" --kind=release
+      - name: Verify the selected trusted staging acceptance run
+        if: inputs.environment == 'production'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REFERENCE_RUN_ID: ${{ inputs.staging_run_id }}
+          RELEASE_RUN_ID: ${{ inputs.release_run_id }}
+        run: node "$TOPIC/scripts/operations/verify-workflow.mjs" --kind=staging
       - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd
         with:
           role-to-assume: ${{ vars.SCALING_DEPLOY_ROLE_ARN }}
@@ -48,6 +60,9 @@ jobs:
         env:
           CLOUD_TARGET_JSON: ${{ vars.SCALING_CLOUD_TARGET_JSON }}
           SYNTHETIC_JOURNEY_JSON: ${{ secrets.SCALING_SYNTHETIC_JOURNEY_JSON }}
+          DEPLOY_ENVIRONMENT: ${{ inputs.environment }}
+          RELEASE_RUN_ID: ${{ inputs.release_run_id }}
+          STAGING_RUN_ID: ${{ inputs.staging_run_id }}
           DOCKER_CONFIG: ${{ runner.temp }}/scaling-registry
         run: node "$TOPIC/scripts/operations/deploy.mjs"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a

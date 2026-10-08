@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';import {spawnSync} from 'node:child_proc
 const topic=resolve(dirname(fileURLToPath(import.meta.url)),'../..'),folder=resolve(topic,'infra/compose/artifacts/ci');
 const target=validateTarget(JSON.parse(process.env.CLOUD_TARGET_JSON??'{}'));
 assert.equal(process.env.GITHUB_REF,'refs/heads/main');assert.match(process.env.RELEASE_SOURCE_SHA??'',/^[a-f0-9]{40}$/);
+assert.match(process.env.CI_RUN_ID??'',/^[1-9][0-9]*$/);assert.match(process.env.GITHUB_RUN_ID??'',/^[1-9][0-9]*$/);
 const identity=JSON.parse(await readFile(resolve(folder,'image-identity.json'),'utf8')),security=JSON.parse(await readFile(resolve(folder,'security-summary.json'),'utf8'));
 assert.equal(identity.durabilityPassed,true);assert.equal(security.passed,true);assert.equal(identity.imageId,security.imageId);assert.equal(identity.archiveSha256,security.archiveSha256);
 assert.equal(security.sourceTreeSha256,identity.sourceTreeSha256);assert.equal(security.matchCounts.High??0,0);assert.equal(security.matchCounts.Critical??0,0);assert.deepEqual(security.exceptions,[]);
