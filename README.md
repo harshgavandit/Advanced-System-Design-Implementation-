@@ -1,6 +1,5 @@
 # System Design Journey
 
-System design notes and examples for the YouTube playlist, Season 1.
 
 This is not an app. There is no root build, lint, or test command. Each video topic lives in its own folder.
 
