@@ -22,7 +22,9 @@ test('malformed compressed JSON cannot crash the resolved Express parser process
         const base='http://127.0.0.1:'+server.address().port;
         const valid=await fetch(base+'/body',{method:'POST',headers:{'content-type':'application/json','content-encoding':'gzip'},body:gzipSync('{"valid":true}')});
         assert.equal(valid.status,200);await valid.arrayBuffer();
-        const malformed=Buffer.concat([gzipSync('{"valid":true}'),Buffer.from('invalid trailing bytes')]);
+        // A finished gzip member followed by a large tail exercises the late
+        // decoder-error path; a tiny malformed frame only tests normal 400s.
+        const malformed=Buffer.concat([gzipSync('{"valid":true}'),Buffer.from([0]),Buffer.alloc(100*1024,0x58)]);
         const response=await fetch(base+'/body',{method:'POST',headers:{'content-type':'application/json','content-encoding':'gzip'},body:malformed});
         assert.ok([200,400].includes(response.status));await response.arrayBuffer();
         await new Promise(done=>setTimeout(done,100));
