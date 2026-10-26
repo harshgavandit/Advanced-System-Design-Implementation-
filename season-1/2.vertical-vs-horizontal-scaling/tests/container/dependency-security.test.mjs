@@ -5,7 +5,37 @@ import {createServer,get} from 'node:http';
 import {once} from 'node:events';
 import zlib from 'node:zlib';
 import {randomBytes} from 'node:crypto';
+import {spawnSync} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
 const require=createRequire(new URL('../../servers/02-express/package.json',import.meta.url));
+
+test('malformed compressed JSON cannot crash the resolved Express parser process',()=>{
+  const probe=`
+    const assert=require('node:assert/strict'),{createRequire}=require('node:module'),{gzipSync}=require('node:zlib');
+    const express=createRequire(process.argv[1])('express'),app=express();
+    app.use(express.json({limit:'32kb',strict:true}));
+    app.post('/body',(req,res)=>res.json({accepted:true}));
+    app.get('/health',(_req,res)=>res.json({status:'ok'}));
+    app.use((error,_req,res,_next)=>res.status(error.status||400).json({error:'Invalid body'}));
+    const server=app.listen(0,'127.0.0.1',async()=>{
+      try{
+        const base='http://127.0.0.1:'+server.address().port;
+        const valid=await fetch(base+'/body',{method:'POST',headers:{'content-type':'application/json','content-encoding':'gzip'},body:gzipSync('{"valid":true}')});
+        assert.equal(valid.status,200);await valid.arrayBuffer();
+        // A finished gzip member followed by a large tail exercises the late
+        // decoder-error path; a tiny malformed frame only tests normal 400s.
+        const malformed=Buffer.concat([gzipSync('{"valid":true}'),Buffer.from([0]),Buffer.alloc(100*1024,0x58)]);
+        const response=await fetch(base+'/body',{method:'POST',headers:{'content-type':'application/json','content-encoding':'gzip'},body:malformed});
+        assert.ok([200,400].includes(response.status));await response.arrayBuffer();
+        await new Promise(done=>setTimeout(done,100));
+        assert.equal((await fetch(base+'/health')).status,200);
+        server.closeAllConnections();server.close();
+      }catch(error){console.error(error.message);server.closeAllConnections();server.close();process.exitCode=1;}
+    });`;
+  const result=spawnSync(process.execPath,['-e',probe,fileURLToPath(new URL('../../servers/02-express/package.json',import.meta.url))],{encoding:'utf8',timeout:10000});
+  assert.equal(result.error,undefined,'Parser regression probe must finish');
+  assert.equal(result.status,0,result.stderr||'Compressed input crashed the API process');
+});
 
 test('the resolved Express proxy dependency does not trust arbitrary IPv4 peers via a short mapped IPv6 prefix',()=>{
   const expressRequire=createRequire(require.resolve('express'));
