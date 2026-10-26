@@ -18,3 +18,23 @@ Admin changes, mutation receipts, token-family revocations and redrives produce 
 Local `.env` files, generated keys, `sessions.json`, backups, backup keys and scanner working directories are private ignored artifacts. Share only the generated allowlisted report inventory and selected screenshots. Redacted secret scans, workflow lint, static security rules, SBOM and image vulnerability checks are blocking CI gates. A scan for an older image cannot authorize publication of a rebuilt image.
 
 Open operational gates: a human incident owner, confirmed notification destination, secret rotation rehearsal, HTTPS staging acceptance and real access review. The local alert webhook records delivery but does not page a human operator.
+
+## Scheduled dependency failures
+
+Scheduled CI scans the frozen image against the current advisory database, so
+new advisories can fail an unchanged commit. Do not disable the High/Critical
+gate, add automatic exceptions, or reuse a previous image's scan to make it
+green. Inspect the uploaded `image-vulnerabilities.json`, patch the affected
+runtime/package locks, rebuild, and run contracts, durability, operations and
+the exact-image scan again.
+
+The October 26, 2026 failure identified Brotli `1.2.0-r5`
+(`CVE-2026-111497`), Express's `body-parser` `2.3.0`
+([compressed-body process crash](https://github.com/advisories/GHSA-27r3-jxmh-p828))
+and Zod `4.5.4`
+([collection validation resource exhaustion](https://github.com/advisories/GHSA-mrhx-c7xc-m3w5)).
+Runtime Brotli is pinned to `1.2.0-r7`, the resolved parser to `2.4.0`, and Zod
+to `4.6.7`. A subprocess regression checks that a gzip JSON body with trailing
+garbage cannot terminate the resolved Express parser, and that ordinary gzip
+JSON and subsequent health requests still work. Frozen installation and the
+image's installed-package provenance check remain mandatory.

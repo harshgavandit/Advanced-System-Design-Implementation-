@@ -49,4 +49,15 @@ Revoke affected sessions and short-lived cloud identities, rotate secrets throug
 
 ## Cadence
 
+Before measuring a newly scaled workload, wait for traffic to reach every
+expected inspected replica address. Docker DNS/Nginx discovery can initially
+contain only the first started endpoint. A fixed burst of rapid probes may all
+finish before the next discovery refresh. The mixed runner now probes within a
+bounded 60-second startup window, checks successful readiness bodies and exact
+owned endpoint membership, and records expected/observed addresses and attempts.
+Missing, foreign or unhealthy endpoints cannot satisfy the gate. The workload
+and its latency/correctness/drop thresholds start only after this gate passes;
+an actual missing replica still fails the run. Keep failed mixed-load evidence
+separate from independently successful rollback/restore evidence.
+
 Review service errors, queue age, DLQ and spend daily. Review dependencies, capacity and unresolved failed jobs weekly. Rehearse restore, access review and retention monthly initially. Every incident review records trigger, customer/data impact, detected versus actual start, mitigation, measured restore time, contributing cause and owned follow-up date.
