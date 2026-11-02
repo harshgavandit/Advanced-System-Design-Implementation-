@@ -5,6 +5,7 @@ import {createReadStream} from 'node:fs';
 import {randomBytes,createHash} from 'node:crypto';
 import {resolve,dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {mongoDiagnostics} from './diagnostics.mjs';
 const topic=resolve(dirname(fileURLToPath(import.meta.url)),'../..'),artifacts=resolve(topic,'infra/compose/artifacts');
 await mkdir(resolve(artifacts,'ci'),{recursive:true});
 function docker(args,{capture=false,env=process.env}={}){const result=spawnSync('docker',args,{cwd:topic,env,encoding:'utf8',stdio:capture?'pipe':'inherit'});assert.equal(result.status,0,result.stderr??'Docker gate failed');return result.stdout?.trim();}
@@ -36,4 +37,5 @@ try{
   const archive=resolve(artifacts,'ci/ci-image.tar');docker(['save','--output',archive,image]);
   const hash=createHash('sha256');for await(const chunk of createReadStream(archive))hash.update(chunk);
   await writeFile(resolve(artifacts,'ci/image-identity.json'),JSON.stringify({imageId:id,sourceTreeSha256:sourceHash,archiveSha256:hash.digest('hex'),durabilityPassed:true,createdAt:new Date().toISOString()},null,2)+'\n');
-}finally{docker([...compose,'--profile','manual','down'],{env});}
+}catch(error){mongoDiagnostics(compose,{env});throw error;}
+finally{docker([...compose,'--profile','manual','down'],{env});}
