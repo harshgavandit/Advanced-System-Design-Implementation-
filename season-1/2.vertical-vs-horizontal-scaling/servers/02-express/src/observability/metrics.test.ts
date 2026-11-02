@@ -56,3 +56,18 @@ test('records durable completion latency separately from delivery attempts witho
   assert.equal(completion.values.find(value=>value.metricName==='app_ingestion_completion_seconds_sum')!.value,12.5);
   assert.ok(!JSON.stringify(completion).includes('jobId'));
 });
+
+test('admission metrics expose budget, active work, high water and rejection count without request labels',async()=>{
+  const metrics=createHttpMetrics('express',{collectRuntimeMetrics:false});
+  let active=3;
+  metrics.setAdmissionProvider(()=>({active,limit:4,highWater:4}));
+  metrics.admissionRejected();metrics.admissionRejected();
+  let rows=await metrics.registry.getMetricsAsJSON();
+  assert.equal(rows.find(row=>row.name==='app_admission_active')!.values[0].value,3);
+  assert.equal(rows.find(row=>row.name==='app_admission_limit')!.values[0].value,4);
+  assert.equal(rows.find(row=>row.name==='app_admission_high_water')!.values[0].value,4);
+  assert.equal(rows.find(row=>row.name==='app_admission_rejected_total')!.values[0].value,2);
+  active=0;rows=await metrics.registry.getMetricsAsJSON();
+  assert.equal(rows.find(row=>row.name==='app_admission_active')!.values[0].value,0);
+  assert.ok(!JSON.stringify(rows.filter(row=>row.name.startsWith('app_admission'))).includes('requestId'));
+});

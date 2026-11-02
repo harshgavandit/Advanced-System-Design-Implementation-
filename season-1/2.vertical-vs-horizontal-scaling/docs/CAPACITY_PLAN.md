@@ -1,5 +1,35 @@
 # Capacity and benchmark interpretation
 
+## Local capacity ladder and current evidence
+
+`node scripts/local/learning-lab.mjs --scenario=capacity --duration=2m --rate=20 --repeat=3` measures 20, 40 and 80 offered iterations/s. Rates are bounded to 200 and deduplicated. Repeat order alternates ascending/descending to expose warm-up/order effects. The profile schedules 80% public catalog and 20% authenticated reads by scenario-global iteration ID, independent of VU allocation. It does not include password hashing or mutation traffic and cannot be extrapolated to the mixed-write profile.
+
+Cache and compression are off. Four APIs share 1 CPU, 2 GiB and 40 configured pool slots. k6 has a separate fixed 1 CPU/512 MiB budget. Each level retains raw results, achieved throughput, p95/p99, response correctness, HTTP failures, drops and actual API CPU samples. Reported p95 is client-side. The ladder records median and range across repeats and qualifies a rate only if every repeat has zero errors, drops and correctness failures and aggregate client p95 below 150 ms. This is a local demonstration SLO, not a production SLO.
+
+Only the contiguous qualifying tested ladder is reported as supported. A later lucky pass cannot hide an earlier failure. The result explicitly sets `maximumCapacityEstablished: false`; even the highest passing rate is a tested point, not a saturation limit. A recovery run follows the ladder. If the generator drops arrivals, qualify neither application capacity nor the offered rate. Increase trial length/repeats before drawing stronger conclusions.
+
+The Mongo outage has a separate containment gate: only correct 200 responses or JSON 503 with a numeric positive Retry-After, at least one observed unavailable response and admission rejection, zero transport/correctness failures or dropped arrivals, and every measured response below eight seconds. Its 503s are expected failures of business availability, not successful service. The ordinary workload's strict success gates are unchanged.
+
+### Measured local hardening checkpoint
+
+Run `2026-10-08T18-06-30-087Z-ccd75c` passed all eleven scenarios on image `sha256:422f4a671bef60d53d89bc56096a5522262cf90270a0284270bc4d1fbda37b59`, source `cb8b379892bafa4273a69309b695ef4abc163f77aa8f26533a98f516baed2920`. The horizontal read ladder used two 30-second trials per rate, with ascending then descending order, the resource budgets above and no cache/compression. These are short qualification points, not a maximum-capacity estimate or long-term operating guarantee.
+
+| Compression | Offered / mean achieved req/s | Mean wire out, KiB/s | Sampled mean API CPU cores | Client p95 median (range), ms | Passed / failed responses | Dropped arrivals |
+|---|---|---|---|---|---|---|
+| Off | 20 / 20.02 | 153.73 | 0.095 | 100.04 (99.73-100.34) | 1,202 / 0 | 0 |
+| Off | 40 / 40.01 | 307.10 | 0.179 | 101.32 (101.10-101.53) | 2,402 / 0 | 0 |
+| Off | 80 / 79.91 | 613.31 | 0.310 | 103.44 (99.05-107.84) | 4,802 / 0 | 0 |
+
+CPU values are the mean of discrete Docker samples of the four serving API cgroups, excluding k6, Mongo and other services; sample windows include the pre-load sample and probes. The highest supported tested point was 80 req/s. The profile uses public reads plus one authenticated synthetic operator, not 80 distinct active users or a mixed-write workload. Stored synthetic profile count is a different metric. Shared host activity is not an independent production fault domain.
+
+Topology changes and Prometheus restarts can leave old instant-gauge series visible during the lookback window. Historical dashboard sums can therefore briefly exceed the final replica/resource count. Qualification uses inspected current container IDs and budgets plus current active scrape targets, not a graph sum alone. Client k6 latency/throughput remains separate from sampled server metrics.
+
+During the separate frozen-Mongo drill, 401 requests included 283 explicit retryable 503s, with zero incorrect responses or dropped arrivals, p95 2,002.69 ms and maximum 7,058.84 ms. Direct process counters recorded 251 admission rejections. Each API stayed within its intentionally reduced two-response budget. Every original peer passed public/protected reads; the subsequent 601-request workload passed with the same container IDs, process start times and reduced budget, p95 91.99 ms, before configuration reset. This demonstrates containment and recovery, not availability during the stall.
+
+The final normal-layout workload completed 601 requests with zero failures/drops and p95 97.00 ms. The report retains 78 hash-bound raw artifacts. A separate actual Ctrl+C drill while Mongo was paused produced failed/interrupted evidence, unpaused Mongo, removed the owned load, released the lock and completed recovery. Static, canonical contract, exact-image durability and security gates passed; the security backlog and historical long-soak boundary remain in SECURITY.md and PHASE_STATUS.md.
+
+Current local evidence is in `infra/compose/artifacts/learning/latest.json` and its referenced report. Verify the source/image identity, runner fingerprint and every raw artifact hash before presenting numbers. The October 7 measurements below predate the admission/socket hardening and remain historical evidence for their original image, not current-image soak/security/maximum-capacity proof.
+
 Use `bench/compare.ps1` for equal-resource catalog comparison. It warms each topology for two minutes, measures ten minutes three times, and summarizes median and spread. `-Smoke` is only a startup sanity check. Do not mix those results with full trials.
 
 `scripts/local/capacity-verify.ps1` selects the immutable tested image and runs the comparison followed by two two-minute cache-on and Redis-outage trials. It refuses to overlap an active owned load generator and restores four replicas with telemetry in its cleanup path. The database summary requires current source contracts and every serving replica to match the same artifact.

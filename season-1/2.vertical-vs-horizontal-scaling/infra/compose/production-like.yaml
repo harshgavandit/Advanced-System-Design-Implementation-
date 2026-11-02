@@ -6,13 +6,15 @@ services:
   mongo:
     logging: *bounded-logs
     image: mongo@sha256:5d7043a4ffe02b9ed1b6e0bab057546981af5ca0a79107e9c461e49bc44c0a7b
+    # SERVER-121912: retain the pinned image, avoid TCMalloc's unsafe rseq path.
+    environment: {GLIBC_TUNABLES: 'glibc.pthread.rseq=1'}
     command: [mongod, --replSet, production-lab, --bind_ip_all, --wiredTigerCacheSizeGB, '0.25']
     volumes: ['mongo-data:/data/db']
     networks: [backend]
     cpus: 1
     mem_limit: 768m
     healthcheck:
-      test: [CMD, mongosh, --quiet, --eval, 'quit(db.adminCommand({ping:1}).ok ? 0 : 1)']
+      test: [CMD, mongosh, --quiet, --eval, 'const s=db.serverStatus(); quit(s.ok===1 && s.tcmalloc?.usingPerCPUCaches===false ? 0 : 1)']
       start_period: 15s
       start_interval: 3s
       interval: 30s

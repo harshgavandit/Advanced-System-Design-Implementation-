@@ -3,7 +3,7 @@ import {existsSync,readFileSync} from 'node:fs';
 import {createRequire} from 'node:module';
 import {gzipSync,gunzipSync,brotliCompressSync,brotliDecompressSync,zstdCompressSync,zstdDecompressSync} from 'node:zlib';
 const require=createRequire('/app/package.json'),bcrypt=require('bcrypt');
-assert.equal(process.getuid(),1000);assert.equal(process.versions.node,'24.21.0');
+assert.equal(process.getuid(),1000);assert.equal(process.versions.node,'24.22.1');
 for(const path of ['/bin/sh','/bin/bash','/usr/bin/apk','/usr/bin/apt','/usr/bin/npm','/usr/bin/npx','/usr/local/lib/node_modules/npm','/usr/local/lib/node_modules/corepack','/opt/yarn-v1.22.22'])assert.equal(existsSync(path),false,'Do not ship build tools: '+path);
 const expected=readFileSync('/app/runtime-packages.lock','utf8').trim().split(/\r?\n/).sort();
 const installed=readFileSync('/lib/apk/db/installed','utf8').trim().split(/\n\n/).map(record=>{

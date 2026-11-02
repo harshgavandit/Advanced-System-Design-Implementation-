@@ -47,6 +47,13 @@ export const createHttpMetrics = (implementation: string, options: MetricsOption
   let readiness=()=>false;
   let ingestionProvider:(()=>Promise<Record<string,unknown>>)|undefined;
   let cacheProvider:(()=>Record<string,number>)|undefined;
+  let admissionProvider:(()=>{active:number;limit:number;highWater:number})|undefined;
+  for(const [field,name,help] of [
+    ['active','app_admission_active','Admitted HTTP responses currently open'],
+    ['limit','app_admission_limit','Configured per-process HTTP response budget'],
+    ['highWater','app_admission_high_water','Peak admitted responses since process start'],
+  ] as const)new Gauge({name,help,registers:[registry],collect(){const state=admissionProvider?.();if(state)this.set(state[field]);}});
+  const admissionRejected=new Counter({name:'app_admission_rejected_total',help:'Requests shed before body parsing or dependency work',registers:[registry]});
   new Gauge({name:'app_readiness',help:'Serving process readiness, distinct from scrape reachability',registers:[registry],collect(){this.set(readiness()?1:0);}});
   const cacheOperations=new Gauge({name:'app_catalog_cache_operations_total',help:'Process cumulative cache operations, reset only on process restart',labelNames:['outcome'],registers:[registry],collect(){for(const [outcome,value] of Object.entries(cacheProvider?.()??{}))this.set({outcome},value);}});
   void cacheOperations;
@@ -113,6 +120,8 @@ export const createHttpMetrics = (implementation: string, options: MetricsOption
     registry,
     setReadiness(provider:()=>boolean):void{readiness=provider;},
     setCacheProvider(provider:()=>Record<string,number>):void{cacheProvider=provider;},
+    setAdmissionProvider(provider:()=>{active:number;limit:number;highWater:number}):void{admissionProvider=provider;},
+    admissionRejected():void{admissionRejected.inc();},
     setIngestionProvider(provider:()=>Promise<Record<string,unknown>>):void{ingestionProvider=provider;},
     ingestionAttempt(outcome:'ack'|'retry'|'busy',seconds:number):void{attempts.observe({outcome},seconds);},
     ingestionCompletion(seconds:number):void{completion.observe(Math.max(0,seconds));},

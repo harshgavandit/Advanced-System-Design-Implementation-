@@ -9,6 +9,8 @@ services:
     mem_limit: 128m
   mongo:
     image: mongo@sha256:5d7043a4ffe02b9ed1b6e0bab057546981af5ca0a79107e9c461e49bc44c0a7b
+    # Let glibc own rseq so TCMalloc uses safe per-thread caches on new kernels.
+    environment: {GLIBC_TUNABLES: 'glibc.pthread.rseq=1'}
     command: [mongod, --port, '28027', --bind_ip_all, --replSet, phase0, --wiredTigerCacheSizeGB, '0.25']
     ports:
       - '127.0.0.1:28027:28027'
@@ -19,7 +21,7 @@ services:
     labels:
       scaling.owner: phase0-contract-tests
     healthcheck:
-      test: [CMD, mongosh, --port, '28027', --quiet, --eval, 'db.adminCommand({ping:1}).ok']
+      test: [CMD, mongosh, --port, '28027', --quiet, --eval, 'const s=db.serverStatus(); quit(s.ok===1 && s.tcmalloc?.usingPerCPUCaches===false ? 0 : 1)']
       interval: 2s
       timeout: 5s
       retries: 30

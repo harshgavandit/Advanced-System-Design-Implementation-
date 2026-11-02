@@ -40,6 +40,9 @@ async function until(fn, label, ms=60000) {
   throw Error(label+' deadline: '+last);
 }
 async function initialize(name, replica) {
+  const usingPerCPUCaches=mongo(name,'return db.serverStatus().tcmalloc.usingPerCPUCaches;');
+  assert.equal(usingPerCPUCaches,false,'The local lab must use the kernel-compatible allocator fallback');
+  (report.mongoRuntime??=[]).push({service:name,usingPerCPUCaches});
   docker(['exec',service(name),'mongosh','--quiet','--eval',`try { rs.status() } catch(e) { if(e.code===94) rs.initiate({_id:${JSON.stringify(replica)},members:[{_id:0,host:${JSON.stringify(name+':27017')}}]}); else throw e; }`]);
   await until(()=>mongo(name,'return db.adminCommand({hello:1}).isWritablePrimary;'),'replica primary');
 }

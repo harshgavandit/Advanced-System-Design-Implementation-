@@ -3,6 +3,7 @@ import {spawnSync} from 'node:child_process';
 import {readdir,mkdir,writeFile} from 'node:fs/promises';
 import {resolve,dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {mongoDiagnostics} from './diagnostics.mjs';
 const topic=resolve(dirname(fileURLToPath(import.meta.url)),'../..');
 if(process.platform==='win32')assert.equal(topic.slice(0,3).toUpperCase(),'D:\\','Local CI files must stay on D:');
 if(process.platform==='win32'){
@@ -30,7 +31,7 @@ try{
     const files=[];
     for(const folder of ['tests/phase0/unit','tests/container','bench/scenarios','scripts/local','scripts/ci','scripts/operations'])for(const file of await readdir(resolve(topic,folder)))if(file.endsWith('.test.mjs'))files.push(resolve(topic,folder,file));
     run(process.execPath,['--test',...files]);
-    for(const folder of ['scripts/ci','scripts/operations','tests/browser','tests/operations'])for(const file of await readdir(resolve(topic,folder)))if(file.endsWith('.mjs'))run(process.execPath,['--check',resolve(topic,folder,file)]);
+    for(const folder of ['scripts/local','scripts/ci','scripts/operations','tests/browser','tests/operations'])for(const file of await readdir(resolve(topic,folder)))if(file.endsWith('.mjs'))run(process.execPath,['--check',resolve(topic,folder,file)]);
     report.checks=['frozen install','canonical TypeScript typecheck','canonical unit suite','contract/schema/fixture and infrastructure-policy units','CI/browser JavaScript syntax'];
   }else if(stage==='contract'){
     const compose=resolve(topic,'tests/phase0/compose.yaml');
@@ -40,7 +41,8 @@ try{
       run('docker',['compose','-f',compose,'exec','-T','mongo','mongosh','--port','28027','--quiet','--eval','try { rs.status() } catch (e) { if(e.code===94)rs.initiate({_id:"phase0",members:[{_id:0,host:"127.0.0.1:28027"}]});else throw e }']);
       run(process.execPath,[resolve(topic,'tests/phase0/run-contract.mjs'),'--implementation=express','--reset-test-db']);
       report.checks=['28 canonical contract operations','real Mongo transactions','ownership, security, idempotency and cache/concurrency regressions'];
-    }finally{run('docker',['compose','-f',compose,'down']);}
+    }catch(error){mongoDiagnostics(['compose','-f',compose]);throw error;}
+    finally{run('docker',['compose','-f',compose,'down']);}
   }else{
     run(process.execPath,[resolve(topic,`scripts/ci/${stage}.mjs`)]);
     report.checks=[{image:'Linux image tested through crash/replay/DLQ recovery',security:'redacted secret scan, Dockerfile lint, exact image vulnerability scan and SBOM',terraform:'Terraform schema validation and mocked infrastructure security checks; no cloud apply',operations:'exact tested image migration, encrypted restore, rollback and mixed-workload verification'}[stage]];

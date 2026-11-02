@@ -13,7 +13,7 @@ services:
     volumes: ['./edge-logging-on.conf:/etc/nginx/edge-logging.conf:ro']
     depends_on: {telemetry: {condition: service_healthy}}
   telemetry-init:
-    image: node:24-trixie-slim@sha256:173f125896c3b47ddf056734c7ea789d04595a6a08769a8f78e0df642781fb66
+    image: node:24.22.1-trixie-slim@sha256:89c5244bc22a9bc3287d89ebc7e49b9cb5bb84cd40e6175ac3421d5a9f68b95a
     user: '0:0'
     command: [node, -e, 'const fs=require("node:fs"); for(const [path,uid] of [["/prometheus",65534],["/grafana",472],["/tempo",10001],["/loki",10001],["/alerts",65534]]) {fs.mkdirSync(path,{recursive:true});fs.chownSync(path,uid,uid)}']
     volumes: ['prometheus-data:/prometheus','grafana-data:/grafana','tempo-data:/tempo','loki-data:/loki','alerts-data:/alerts']

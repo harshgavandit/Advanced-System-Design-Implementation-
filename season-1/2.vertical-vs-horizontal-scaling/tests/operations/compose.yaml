@@ -28,15 +28,17 @@ x-api: &api
 services:
   mongo:
     image: mongo@sha256:5d7043a4ffe02b9ed1b6e0bab057546981af5ca0a79107e9c461e49bc44c0a7b
+    environment: {GLIBC_TUNABLES: 'glibc.pthread.rseq=1'}
     command: [mongod, --replSet, operations, --bind_ip_all, --wiredTigerCacheSizeGB, '0.25']
     volumes: [mongo-data:/data/db]
     networks: [backend]
     cpus: 1
     mem_limit: 768m
     labels: {scaling.owner: operations-test}
-    healthcheck: {test: [CMD, mongosh, --quiet, --eval, 'quit(db.adminCommand({ping:1}).ok ? 0 : 1)'], start_period: 15s, start_interval: 3s, interval: 30s, timeout: 3s, retries: 10}
+    healthcheck: {test: [CMD, mongosh, --quiet, --eval, 'const s=db.serverStatus(); quit(s.ok===1 && s.tcmalloc?.usingPerCPUCaches===false ? 0 : 1)'], start_period: 15s, start_interval: 3s, interval: 30s, timeout: 3s, retries: 10}
   mongo-restore:
     image: mongo@sha256:5d7043a4ffe02b9ed1b6e0bab057546981af5ca0a79107e9c461e49bc44c0a7b
+    environment: {GLIBC_TUNABLES: 'glibc.pthread.rseq=1'}
     command: [mongod, --replSet, operations-restore, --bind_ip_all, --wiredTigerCacheSizeGB, '0.25']
     volumes: [restore-data:/data/db]
     networks: [backend]
@@ -44,7 +46,7 @@ services:
     mem_limit: 768m
     profiles: [restore]
     labels: {scaling.owner: operations-test}
-    healthcheck: {test: [CMD, mongosh, --quiet, --eval, 'quit(db.adminCommand({ping:1}).ok ? 0 : 1)'], start_period: 15s, start_interval: 3s, interval: 30s, timeout: 3s, retries: 10}
+    healthcheck: {test: [CMD, mongosh, --quiet, --eval, 'const s=db.serverStatus(); quit(s.ok===1 && s.tcmalloc?.usingPerCPUCaches===false ? 0 : 1)'], start_period: 15s, start_interval: 3s, interval: 30s, timeout: 3s, retries: 10}
   redis:
     image: redis@sha256:3811787313eba226a2ef38658c6ccb91cd5e110edc89c37767de373120a0e5a0
     command: [redis-server, --save, '', --appendonly, 'no', --maxmemory, 64mb, --maxmemory-policy, allkeys-lru]
