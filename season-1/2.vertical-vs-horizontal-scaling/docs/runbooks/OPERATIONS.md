@@ -49,6 +49,36 @@ Revoke affected sessions and short-lived cloud identities, rotate secrets throug
 
 ## Cadence
 
+### Mongo startup after a host kernel update
+
+The 2026-11-02 scheduled CI run failed in both contract and image gates before
+API tests: pinned MongoDB 8.3.11 exited with control error 12257600. Its TCMalloc
+per-CPU allocator rejects the newer GitHub runner kernel. Ubuntu kernel release
+strings can also hide an upstream patch level. An unchanged image digest does
+not pin the host kernel. See [SERVER-121912](https://jira.mongodb.org/browse/SERVER-121912)
+and [SERVER-131779](https://jira.mongodb.org/browse/SERVER-131779).
+
+Canonical local/CI Mongo services now set `GLIBC_TUNABLES=glibc.pthread.rseq=1`.
+glibc registers rseq first, so this pinned TCMalloc falls back to per-thread
+caches rather than executing the incompatible per-CPU path. This does not fake
+the kernel version or disable Mongo's startup safety check. The Mongo image,
+database format, replica-set settings and persistent volumes are unchanged.
+Every Mongo healthcheck requires `serverStatus().tcmalloc.usingPerCPUCaches`
+to be exactly `false`; missing or active per-CPU metrics fail closed. Recovery
+also records the runtime value for both source and restored servers.
+
+This is a laptop/CI compatibility policy, not a production allocator tuning
+recommendation. It can change memory/performance characteristics; rerun the
+same bounded workloads instead of comparing old measurements as equivalent.
+Revisit the fallback only with a reviewed same-series Mongo patch that includes
+the Ubuntu kernel fix, an immutable image pin, and successful startup, allocator,
+transaction, durability, mixed-load and restore tests. Do not downgrade a server
+against an existing volume or change the host kernel to silence CI.
+
+On startup failure, the contract/image runners print bounded project-scoped
+Mongo logs before cleanup. They do not dump Compose environment or application
+logs. Keep the original gate failure even if diagnostics are unavailable.
+
 Before measuring a newly scaled workload, wait for traffic to reach every
 expected inspected replica address. Docker DNS/Nginx discovery can initially
 contain only the first started endpoint. A fixed burst of rapid probes may all
