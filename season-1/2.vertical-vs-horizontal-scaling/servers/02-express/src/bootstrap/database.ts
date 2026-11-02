@@ -31,6 +31,9 @@ export const connectDatabase = async (): Promise<void> => {
     maxConnecting:2,
     waitQueueTimeoutMS:env.mongoPoolWaitMs,
     serverSelectionTimeoutMS: env.mongoSelectTimeoutMs,
+    // maxTimeMS only runs on the server. A frozen peer cannot enforce it.
+    // Bound stalled established sockets without overriding per-query CSOT.
+    socketTimeoutMS: env.mongoSocketTimeoutMs,
     retryWrites: true,
     bufferCommands: false,
     writeConcern: { w: "majority" },

@@ -2,6 +2,8 @@
 
 Implementation and evidence are separate. Regenerate `evidence/VERIFICATION.md` after testing. The checked-in source contains the following delivery packages; a passing older report does not validate a changed image.
 
+The phase table below records the October 7 delivery checkpoint and its original immutable image. The later local admission/socket hardening changes the runtime fingerprint. For those changes, use `infra/compose/artifacts/learning/latest.json`, the source-bound eleven-scenario report, current static/contract reports and the learning browser report. Earlier security scans, long soaks and encrypted recovery measurements remain historical until their exact-image gates are rerun. The learning outage proves bounded containment and same-process recovery, not uninterrupted availability.
+
 | Phase | Implemented package | Exit-gate boundary |
 |---|---|---|
 | 0 | Actual OpenAPI, production overlay, capability matrix, seeded deterministic fixtures, HTTP suites | Comparative capability proof and baseline retain their original source/runtime |

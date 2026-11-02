@@ -12,7 +12,7 @@
     "seed:test": "tsup && NODE_ENV=test node dist/seed-products.js",
     "start:test": "pnpm build:prod && NODE_ENV=test node dist/server.js",
     "typecheck": "tsc --noEmit",
-    "test": "node --test src/migrations/schema.test.ts src/observability/metrics.test.ts src/observability/cgroup.test.ts src/observability/trace-policy.test.ts src/observability/log-buffer.test.ts src/shared/redact.test.ts src/bootstrap/mongo-members.test.ts src/features/ingestion/policy.test.ts src/queue/policy.test.ts src/shared/read-budget.test.ts",
+    "test": "node --test --test-timeout=30000 src/migrations/schema.test.ts src/observability/metrics.test.ts src/observability/cgroup.test.ts src/observability/trace-policy.test.ts src/observability/log-buffer.test.ts src/shared/redact.test.ts src/bootstrap/mongo-members.test.ts src/features/ingestion/policy.test.ts src/queue/policy.test.ts src/shared/read-budget.test.ts src/shared/admission.test.ts",
     "mongo:up": "docker compose -f infra/mongo/compose.yaml up -d",
     "mongo:down": "docker compose -f infra/mongo/compose.yaml down",
     "mongo:status": "bash infra/mongo/status.sh",

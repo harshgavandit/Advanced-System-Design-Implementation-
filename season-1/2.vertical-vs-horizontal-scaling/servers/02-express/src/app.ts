@@ -22,7 +22,7 @@ import { logger } from "./bootstrap/logger.js";
 import { redisClient } from "./bootstrap/redis.js";
 import { getMongoTopology, isMongoShuttingDown } from "./bootstrap/mongo-topology.js";
 import { httpMetrics,routeLabel } from "./observability/metrics.js";
-import {ReadBudget} from './shared/read-budget.js';
+import {createAdmission} from './shared/admission.js';
 import {currentTraceId} from './observability/trace-context.js';
 import {catalogCacheStats} from './features/products/products.cache.js';
 import {sendOperationalLog} from './observability/log-transport.js';
@@ -49,13 +49,9 @@ app.use((req:Request,res:Response,next:NextFunction)=>{
   res.once('close',()=>{if(!res.writableFinished)finish(499);});
   next();
 });
-const requestBudget=new ReadBudget(64);
-app.use(async(req,res,next)=>{
-  if(['/health','/ready','/metrics'].includes(req.path)){next();return;}
-  await requestBudget.run(()=>new Promise<void>(done=>{
-    res.once('finish',done);res.once('close',done);next();
-  }));
-});
+const admission=createAdmission(env.requestMaxInflight,()=>httpMetrics.admissionRejected());
+httpMetrics.setAdmissionProvider(admission.snapshot);
+app.use(admission.middleware);
 app.use(cors({ origin(origin, callback) {
   if (!origin || env.corsOrigins.includes(origin)) callback(null, true);
   else callback(httpError(403, "Origin not allowed"));

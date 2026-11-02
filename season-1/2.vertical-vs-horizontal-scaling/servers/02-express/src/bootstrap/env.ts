@@ -51,6 +51,8 @@ const envSchema = z.object({
   MONGO_SELECT_TIMEOUT_MS: z.coerce.number().int().positive().default(2000),
   MONGO_POOL_MAX: z.coerce.number().int().min(1).max(100).optional(),
   MONGO_POOL_WAIT_MS: z.coerce.number().int().min(50).max(2000).default(500),
+  REQUEST_MAX_INFLIGHT: z.coerce.number().int().min(1).max(1024).default(64),
+  MONGO_SOCKET_TIMEOUT_MS: z.coerce.number().int().min(1000).max(15000).default(5000),
 }).superRefine((value,ctx)=>{
   if (value.SERVICE_ROLE==='api') {
     for (const key of ['JWT_ACCESS_SECRET','JWT_REFRESH_SECRET'] as const) {
@@ -94,5 +96,7 @@ export const env = {
   mongoSelectTimeoutMs: parsed.data.MONGO_SELECT_TIMEOUT_MS,
   mongoPoolMax: parsed.data.MONGO_POOL_MAX??(parsed.data.SERVICE_ROLE==='worker'?3:parsed.data.SERVICE_ROLE==='outbox'?2:10),
   mongoPoolWaitMs: parsed.data.MONGO_POOL_WAIT_MS,
+  requestMaxInflight: parsed.data.REQUEST_MAX_INFLIGHT,
+  mongoSocketTimeoutMs: parsed.data.MONGO_SOCKET_TIMEOUT_MS,
   mongoAutoIndex: parsed.data.MONGO_AUTO_INDEX ? parsed.data.MONGO_AUTO_INDEX==='true' : parsed.data.NODE_ENV!=='production',
 };

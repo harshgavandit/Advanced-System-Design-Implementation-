@@ -31,7 +31,7 @@ try{
     const files=[];
     for(const folder of ['tests/phase0/unit','tests/container','bench/scenarios','scripts/local','scripts/ci','scripts/operations'])for(const file of await readdir(resolve(topic,folder)))if(file.endsWith('.test.mjs'))files.push(resolve(topic,folder,file));
     run(process.execPath,['--test',...files]);
-    for(const folder of ['scripts/ci','scripts/operations','tests/browser','tests/operations'])for(const file of await readdir(resolve(topic,folder)))if(file.endsWith('.mjs'))run(process.execPath,['--check',resolve(topic,folder,file)]);
+    for(const folder of ['scripts/local','scripts/ci','scripts/operations','tests/browser','tests/operations'])for(const file of await readdir(resolve(topic,folder)))if(file.endsWith('.mjs'))run(process.execPath,['--check',resolve(topic,folder,file)]);
     report.checks=['frozen install','canonical TypeScript typecheck','canonical unit suite','contract/schema/fixture and infrastructure-policy units','CI/browser JavaScript syntax'];
   }else if(stage==='contract'){
     const compose=resolve(topic,'tests/phase0/compose.yaml');

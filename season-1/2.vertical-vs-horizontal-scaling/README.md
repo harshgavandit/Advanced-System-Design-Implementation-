@@ -57,3 +57,26 @@ Public APIs do not expose `/metrics`. Prometheus scrapes every replica on the pr
 - [Generated verification inventory](docs/evidence/VERIFICATION.md)
 
 The cloud examples are disabled until actual account, domain, identities, budget and secret references are supplied. Terraform validation uses mocked providers. A local successful drill does not establish multi-AZ resilience, an Atlas PIT restore, or a 30-day production SLO.
+
+## Entirely local learning environment
+
+The small owned learning environment reuses the same canonical Express image, MongoDB, Redis, Nginx, ElasticMQ, k6, Prometheus and Grafana. It does not require PowerShell 7, cloud credentials or paid services. Run from this topic folder:
+
+```powershell
+node scripts/local/learning-lab.mjs --list
+node scripts/local/learning-lab.mjs --all --duration=30s --rate=20 --repeat=2
+node scripts/local/learning-lab.mjs --scenario=capacity --duration=2m --rate=20 --repeat=3
+node scripts/local/learning-lab.mjs --scenario=mongo-outage
+node scripts/local/learning-lab.mjs --down
+```
+
+All eleven scenarios are explicit: baseline, scaling, cache, API loss, Redis loss, worker crash, duplicate delivery, rollback, independent restore, capacity ladder and Mongo network-stall containment. Failure tests mutate only `scaling-learning-lab` containers and the owned synthetic `learning_lab` database. Never repoint them at a real database. `--down` preserves volumes and evidence.
+
+- API: `http://127.0.0.1:18090/products?page=1&limit=20`
+- Dashboard: `http://127.0.0.1:13004/d/local-learning-lab`
+- Prometheus: `http://127.0.0.1:19094`
+- Evidence pointer: ignored `infra/compose/artifacts/learning/latest.json`
+
+Reports bind source/image identity, runner/scenario fingerprint, raw k6 outputs, workload resources and artifact hashes. Scenarios record the expected behavior, observations, limitation and relevant dashboard panels. The runner checks the served dashboard contract, not just Grafana process health. Traffic stops when the workload completes; use another baseline run for fresh dashboard traffic.
+
+This is a single-host learning environment, not a public production deployment. Anonymous Grafana access is Viewer-only and loopback-only. Security scans, full contract, long soak and recovery evidence from earlier images remain historical until rerun for a changed image. Do not treat a new short learning run as those acceptance gates.
